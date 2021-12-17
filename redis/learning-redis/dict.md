@@ -29,7 +29,7 @@
 
   + 图示（size为4的空哈希表）
 
-    + ![image-20211217182440057](C:\Users\qq\AppData\Roaming\Typora\typora-user-images\image-20211217182440057.png)
+    + ![image](https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/dict_emptyHashTable.png)
 
 + 哈希表节点
 

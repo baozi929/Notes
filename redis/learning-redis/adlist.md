@@ -31,7 +31,7 @@
 
   + 图示
 
-    + ![image-20211217180126303](C:\Users\qq\AppData\Roaming\Typora\typora-user-images\image-20211217180126303.png)
+    + ![image](https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/adlist_list.png)
 
 + 节点
 
@@ -51,7 +51,7 @@
 
   + 图示
 
-    + ![](C:\Users\qq\AppData\Roaming\Typora\typora-user-images\image-20211217180049948.png)
+    + ![image](https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/adlist_listNode.png)
 
 + 迭代器
 
