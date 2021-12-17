@@ -59,7 +59,7 @@ struct __attribute__ ((__packed__)) sdshdr5 {
 struct __attribute__ ((__packed__)) sdshdr8 {
 	// 已使用长度
     uint8_t len; /* used */
-    // 分配的总长度，包含头和空终止符'\0'
+    // 分配的长度，不包含头和空终止符'\0'
 	uint8_t alloc; /* excluding the header and null terminator */
 	// 低三位表示保存类型
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
