@@ -31,7 +31,7 @@
 
   + 图示
 
-    + ![image](https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/adlist_list.png)
+    + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/adlist_list.png" width="600"/>
 
 + 节点
 
@@ -51,7 +51,7 @@
 
   + 图示
 
-    + ![image](https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/adlist_listNode.png)
+    + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/adlist_listNode.png" width="600"/>
 
 + 迭代器
 

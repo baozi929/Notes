@@ -29,7 +29,7 @@
 
   + 图示（size为4的空哈希表）
 
-    + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/dict_emptyHashTable.png" width="200"/><br/>
+    + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/dict_emptyHashTable.png" width="600"/><br/>
 
 + 哈希表节点
 
