@@ -65,12 +65,10 @@
         void *privdata;
     	dictht ht[2];
         long rehashidx;
-    	// pauserehash > 0 表示rehash暂停；= 0 表示可以rehash
-    	// 作用：因为安全迭代器和扫描可能同时存在多个，导致pauserehash的值可能 > 1
-        int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
+        int16_t pauserehash;
     } dict;
     ```
-
+    
   + 包含：
 
     + type：类型特定函数。指向dictType结构的指针，每个dictType结构保存了用于操作特定类型键值对的函数，Redis会为用户不同的字典设置不同的类型特定函数。
@@ -86,7 +84,7 @@
             int (*expandAllowed)(size_t moreMem, double usedRatio);
         } dictType;
         ```
-
+  
     + privatedata：私有数据
 
     + ht：一个字典包含2个哈希表。通常只使用ht[0]，只会在rehash的时候使用ht[1]
@@ -220,6 +218,171 @@
       + 删除
       + 查找
       + 修改
+
+## 遍历——dictIterator
+
++ 字典迭代器
+
+  + ```
+    typedef struct dictIterator {
+        dict *d;
+        long index;
+        int table, safe;
+        dictEntry *entry, *nextEntry;
+        long long fingerprint;
+    } dictIterator;
+    ```
+    
+    + d：被迭代的字典指针
+    + index：迭代器当前迭代到的桶的索引值
+    + table：正在迭代的hash表（ht[0]或ht[1]）
+    + save：当前迭代器是否为安全迭代器，1表示安全迭代器
+    + entry，nextEntry：当前节点，下一个节点
+    + fingerprint：字典的fingerprint，64位整数，ht[0]和ht[1]的table、size、used字段组合形成的hash值（见函数`long long dictFingerprint(dict *d);`）。字典不发生改变时，该值不变；字典发生改变时，改值也发生变化。防止迭代的过程中字典结构被修改。
+    
+  + 迭代器的大小（64位系统）
+
+    + 48 bytes：dict指针（8 bytes） + long（8 bytes） + 2 int(4 bytes * 2) + 2 dictEntry指针（8 bytes * 2） +  long long（8 bytes）
+
+  + 迭代器相关API：
+
+    + ```
+      dictIterator *dictGetIterator(dict *d);
+      dictIterator *dictGetSafeIterator(dict *d);
+      dictEntry *dictNext(dictIterator *iter);
+      void dictReleaseIterator(dictIterator *iter);
+      ```
+
++ 迭代器分类：
+
+  + 普通迭代器
+
+    + ```
+      dictIterator *dictGetIterator(dict *d)
+      {
+          dictIterator *iter = zmalloc(sizeof(*iter));
+      
+          iter->d = d;
+          iter->table = 0;
+          iter->index = -1;
+          iter->safe = 0;
+          iter->entry = NULL;
+          iter->nextEntry = NULL;
+          return iter;
+      }
+      ```
+
+    + 说明：
+
+      + 保证数据准确性的方法：fingerprint不应在迭代过程中发生变化
+      + 因为对字典进行插入、删除、修改、查找等操作都有可能调用_dictRehashStep()函数（进行incremantal rehash），从而导致fingerprint发生变化
+      + 所以普通迭代器**只能用于调用dictNext()**函数来迭代整个字典
+
+  + 安全迭代器
+
+    + ```
+      dictIterator *dictGetSafeIterator(dict *d) {
+          dictIterator *i = dictGetIterator(d);
+      
+          i->safe = 1;
+          return i;
+      }
+      ```
+
+    + 说明：
+
+      + 保证读取数据准确性的方法：
+        + 使用安全迭代器时，暂停incremental rehash，从而保证字典在迭代器迭代过程中数据不会被重复遍历
+      + 安全迭代器即使在迭代时，也可以对字典进行插入、删除、修改、查找等操作
+      + 安全迭代器也可以调用dictNext()来遍历字典中的节点
+
++ 迭代器操作
+
+  + 获取下一个节点dictEntry
+
+    + ```
+      dictEntry *dictNext(dictIterator *iter)
+      {
+          while (1) {
+              if (iter->entry == NULL) {
+                  dictht *ht = &iter->d->ht[iter->table];
+                  if (iter->index == -1 && iter->table == 0) {
+                      if (iter->safe)
+                          dictPauseRehashing(iter->d);
+                      else
+                          iter->fingerprint = dictFingerprint(iter->d);
+                  }
+                  iter->index++;
+      
+                  if (iter->index >= (long) ht->size) {
+                      if (dictIsRehashing(iter->d) && iter->table == 0) {
+                          iter->table++;
+                          iter->index = 0;
+                          ht = &iter->d->ht[1];
+                      } else {
+                          break;
+                      }
+                  }
+                  iter->entry = ht->table[iter->index];
+              } else {
+                  iter->entry = iter->nextEntry;
+              }
+              if (iter->entry) {
+                  iter->nextEntry = iter->entry->next;
+                  return iter->entry;
+              }
+          }
+          return NULL;
+      }
+      ```
+
+    + 说明：
+
+      + 循环退出条件：1. 找到节点，返回该节点；2. 遍历所有哈希桶没找到，退出并返回NULL
+      + 判断当前节点值是否为空
+        + 如果为空，说明第一次进入迭代器，或者需要进入下一个哈希桶寻找节点
+          + 两种情况：
+            + 如果是第一次进入迭代器，需要判断是否是安全迭代器。如果为**安全迭代器**，pauserehash++；如果是**非安全迭代器**，则计算fingerprint的值，并赋给迭代器
+            + 如果不是第一次进入迭代器，说明当前桶已经遍历完成，需要进入下一个桶
+            + 因此两种情况都需要将迭代器的桶索引index++
+          + 如果当前的索引大于当前哈希表的长度
+            + 如果正在rehash且当前遍历的是ht[0]，那么需要从ht[1]的0号桶开始遍历（table++，index=0）
+            + 其他情况说明已经遍历完成，**退出循环**
+          + 获取**当前哈希桶的首节点**
+        + 如果不为空，说明正在某一个桶的某一个节点，继续遍历**取下一个节点**即可
+      + 最终获得的节点
+        + 如果不为空，说明找到节点，需要更新iterator的nextEntry为该节点的下一个节点（保存下一个节点可以保证当前节点被删除时后续迭代数据不丢失）
+        + 如果为空，说明没有找到节点，返回NULL
+
+  + 回收迭代器内存
+
+    + ```
+      void dictReleaseIterator(dictIterator *iter)
+      {
+          if (!(iter->index == -1 && iter->table == 0)) {
+              if (iter->safe)
+                  dictResumeRehashing(iter->d);
+              else
+                  assert(iter->fingerprint == dictFingerprint(iter->d));
+          }
+          zfree(iter);
+      }
+      ```
+
+    + 说明：
+
+      + 安全迭代器可以直接释放，且释放之后可以将pauserehash--
+      + 非安全迭代器必须保证fingerprint没有变化才能释放，否则失败
+
++ 全遍历的问题
+
+  + 当数据库中存有海量数据时，执行KEYS命令进行一次数据库全遍历的代价很高
+
+## 遍历——dictScan
+
++ 用途：迭代字典中数据时使用
+  + 例：hscan命令迭代整个数据库中的key；zscan命令迭代有序集合所有成员与值，...
++ dictScan过程中可以进行rehash
 
 
 
