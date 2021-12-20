@@ -374,15 +374,16 @@
       + 安全迭代器可以直接释放，且释放之后可以将pauserehash--
       + 非安全迭代器必须保证fingerprint没有变化才能释放，否则失败
 
-+ 全遍历的问题
++ 通过dictIterator遍历的问题
 
-  + 当数据库中存有海量数据时，执行KEYS命令进行一次数据库全遍历的代价很高
+  + 当数据库中存有海量数据时，迭代dictIterator对字典进行一次数据库全遍历的代价很高
 
 ## 遍历——dictScan
 
 + 用途：迭代字典中数据时使用
   + 例：hscan命令迭代整个数据库中的key；zscan命令迭代有序集合所有成员与值，...
-+ dictScan过程中可以进行rehash
++ dictScan过程中**可以进行rehash**
++ 
 
 
 
