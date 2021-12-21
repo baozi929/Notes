@@ -1074,7 +1074,7 @@ dictEntry *dictGetFairRandomKey(dict *d) {
 /* Function to reverse bits. Algorithm from:
  * http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel */
 /* 二进制的逆序操作
- * 举个例子，假设要反转32位long，该算法的思路是：
+ * 举个例子，假设要反转32位整数，该算法的思路是：
  * 先对调相邻的16位, 再对调相邻的8位, 再对调相邻的4位, 再对调相邻的2位, 最终完成反转.
  */
 static unsigned long rev(unsigned long v) {
