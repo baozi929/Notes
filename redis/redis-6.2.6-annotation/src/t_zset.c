@@ -73,7 +73,7 @@ int zslLexValueLteMax(sds value, zlexrangespec *spec);
  */
 zskiplistNode *zslCreateNode(int level, double score, sds ele) {
 	// 分配内存
-	// 包括zskiplistNode本身（指针+double+指针+指针）+zskiplistLevel数组（level个元素）
+	// 包括zskiplistNode本身+zskiplistLevel数组（level个元素）
 	zskiplistNode *zn =
         zmalloc(sizeof(*zn)+level*sizeof(struct zskiplistLevel));
 
