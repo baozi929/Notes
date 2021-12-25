@@ -653,6 +653,7 @@ typedef struct RedisModuleDigest {
 /* Objects encoding. Some kind of objects like Strings and Hashes can be
  * internally represented in multiple ways. The 'encoding' field of the object
  * is set to one of this fields for this object. */
+// 对象编码
 #define OBJ_ENCODING_RAW 0     /* Raw representation */
 #define OBJ_ENCODING_INT 1     /* Encoded as integer */
 #define OBJ_ENCODING_HT 2      /* Encoded as hash table */
@@ -672,13 +673,19 @@ typedef struct RedisModuleDigest {
 #define OBJ_SHARED_REFCOUNT INT_MAX     /* Global object never destroyed. */
 #define OBJ_STATIC_REFCOUNT (INT_MAX-1) /* Object allocated in the stack. */
 #define OBJ_FIRST_SPECIAL_REFCOUNT OBJ_STATIC_REFCOUNT
+/* redis对象 */
 typedef struct redisObject {
+	// 类型
     unsigned type:4;
+	// 编码
     unsigned encoding:4;
+	// 对象最后一次被访问的时间
     unsigned lru:LRU_BITS; /* LRU time (relative to global lru_clock) or
                             * LFU data (least significant 8 bits frequency
                             * and most significant 16 bits access time). */
-    int refcount;
+    // 引用计数
+	int refcount;
+	// 指向实际值的指针
     void *ptr;
 } robj;
 
@@ -2166,8 +2173,13 @@ void ACLUpdateDefaultUserPassword(sds password);
 #define ZADD_OUT_UPDATED (1<<3) /* The element already existed, score updated. */
 
 /* Struct to hold an inclusive/exclusive range spec by score comparison. */
+/* 表示开区间/闭区间范围的结构 */
 typedef struct {
+	// 最小值，最大值
     double min, max;
+	// 最小值和最大值是否包含在范围内
+	// 1 —— 不包含
+	// 0 —— 包含
     int minex, maxex; /* are min or max exclusive? */
 } zrangespec;
 
