@@ -38,11 +38,15 @@
 
 /* Note that these encodings are ordered, so:
  * INTSET_ENC_INT16 < INTSET_ENC_INT32 < INTSET_ENC_INT64. */
+/* intset的编码方式 */
 #define INTSET_ENC_INT16 (sizeof(int16_t))
 #define INTSET_ENC_INT32 (sizeof(int32_t))
 #define INTSET_ENC_INT64 (sizeof(int64_t))
 
 /* Return the required encoding for the provided value. */
+/* 输入：值v
+ * 返回：值v对应的编码类型
+ */
 static uint8_t _intsetValueEncoding(int64_t v) {
     if (v < INT32_MIN || v > INT32_MAX)
         return INTSET_ENC_INT64;
@@ -53,13 +57,18 @@ static uint8_t _intsetValueEncoding(int64_t v) {
 }
 
 /* Return the value at pos, given an encoding. */
+/* 根据指定编码和数据在intset中的位置，取回该值 */
 static int64_t _intsetGetEncoded(intset *is, int pos, uint8_t enc) {
     int64_t v64;
     int32_t v32;
     int16_t v16;
 
     if (enc == INTSET_ENC_INT64) {
+        // ((int64_t*)is->contents)将数组转换回被编码的类型
+        // ((int64_t*)is->contents)+pos计算数组中的地址
+        // 通过memcpy将数据拷贝到v64中
         memcpy(&v64,((int64_t*)is->contents)+pos,sizeof(v64));
+        // 如果有需要的话， memrevEncifbe(&vEnc) 会对拷贝出的字节进行大小端转换
         memrev64ifbe(&v64);
         return v64;
     } else if (enc == INTSET_ENC_INT32) {
@@ -74,16 +83,25 @@ static int64_t _intsetGetEncoded(intset *is, int pos, uint8_t enc) {
 }
 
 /* Return the value at pos, using the configured encoding. */
+/* 根据集合的编码方式，返回底层数组在索引pos上的值 */
 static int64_t _intsetGet(intset *is, int pos) {
     return _intsetGetEncoded(is,pos,intrev32ifbe(is->encoding));
 }
 
 /* Set the value at pos, using the configured encoding. */
+/* 根据集合的编码方式，将底层数组在索引pos上的值设为value */
 static void _intsetSet(intset *is, int pos, int64_t value) {
+    // 取出编码方式
     uint32_t encoding = intrev32ifbe(is->encoding);
 
+    // 选择编码方式
     if (encoding == INTSET_ENC_INT64) {
+        // ((int64_t*)is->contents)将数组转换回被编码的类型
+        // ((int64_t*)is->contents)[pos]定位到数组对应索引位置
+        // ((int64_t*)is->contents)[pos] = value赋值
         ((int64_t*)is->contents)[pos] = value;
+        // ((int64_t*)is->contents)+pos定位到刚刚设置的新值上 
+        // 如果有需要的话，memrevEncifbe将对值进行大小端转换
         memrev64ifbe(((int64_t*)is->contents)+pos);
     } else if (encoding == INTSET_ENC_INT32) {
         ((int32_t*)is->contents)[pos] = value;
@@ -95,17 +113,26 @@ static void _intsetSet(intset *is, int pos, int64_t value) {
 }
 
 /* Create an empty intset. */
+/* 创建并返回一个新的空整数集合 */
 intset *intsetNew(void) {
+    // 分配空间
     intset *is = zmalloc(sizeof(intset));
+    // 设置初始编码方式为INTSET_ENC_INT16
     is->encoding = intrev32ifbe(INTSET_ENC_INT16);
+    // 设置初始长度为0
     is->length = 0;
     return is;
 }
 
 /* Resize the intset */
+/* 调整整数集合的内存空间大小 */
 static intset *intsetResize(intset *is, uint32_t len) {
+    // 计算数组的大小
     uint64_t size = (uint64_t)len*intrev32ifbe(is->encoding);
+    // 保证整个intset的大小 <= SIZE_MAX
     assert(size <= SIZE_MAX - sizeof(intset));
+    // 重新分配空间
+    // 如果新空间大小比原来的空间大小要大, 数组原有的数据会被保留
     is = zrealloc(is,sizeof(intset)+size);
     return is;
 }
