@@ -141,26 +141,37 @@ static intset *intsetResize(intset *is, uint32_t len) {
  * sets "pos" to the position of the value within the intset. Return 0 when
  * the value is not present in the intset and sets "pos" to the position
  * where "value" can be inserted. */
+/* 在整数集合is中寻找值为value的元素的位置
+ * 找到，则函数返回1，且pos为该元素的位置
+ * 没找到，则函数返回0，且pos为value可插入的位置
+ * T=O(logN)
+ */
 static uint8_t intsetSearch(intset *is, int64_t value, uint32_t *pos) {
     int min = 0, max = intrev32ifbe(is->length)-1, mid = -1;
     int64_t cur = -1;
 
     /* The value can never be found when the set is empty */
+    // 处理不可能找到value的情况
+    // is为空的情况，待插入位置为0
     if (intrev32ifbe(is->length) == 0) {
         if (pos) *pos = 0;
         return 0;
+    // is不为空的情况，判断边界值与value的关系（因为有序）
     } else {
         /* Check for the case where we know we cannot find the value,
          * but do know the insert position. */
+        // 大于最大值，待插入位置为is->length
         if (value > _intsetGet(is,max)) {
             if (pos) *pos = intrev32ifbe(is->length);
             return 0;
+        // 小于最小值，待插入位置为0
         } else if (value < _intsetGet(is,0)) {
             if (pos) *pos = 0;
             return 0;
         }
     }
 
+    // 二分查找
     while(max >= min) {
         mid = ((unsigned int)min + (unsigned int)max) >> 1;
         cur = _intsetGet(is,mid);
@@ -173,9 +184,11 @@ static uint8_t intsetSearch(intset *is, int64_t value, uint32_t *pos) {
         }
     }
 
+    // 找到值
     if (value == cur) {
         if (pos) *pos = mid;
         return 1;
+    // 没找到值
     } else {
         if (pos) *pos = min;
         return 0;
@@ -183,9 +196,15 @@ static uint8_t intsetSearch(intset *is, int64_t value, uint32_t *pos) {
 }
 
 /* Upgrades the intset to a larger encoding and inserts the given integer. */
+/* 根据值 value 所使用的编码方式，对整数集合的编码进行升级，并将值 value 添加到升级后的整数集合中
+ * 返回：添加元素后的intset
+ */
 static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
+    // 当前编码方式
     uint8_t curenc = intrev32ifbe(is->encoding);
+    // 新的编码方式
     uint8_t newenc = _intsetValueEncoding(value);
+    // 当前intset元素数量
     int length = intrev32ifbe(is->length);
     int prepend = value < 0 ? 1 : 0;
 
