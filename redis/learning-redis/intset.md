@@ -49,6 +49,10 @@
                   return INTSET_ENC_INT16;
           }
           ```
+    
+  + 图例：
+  
+    + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/intset_intset.png" width="400"/>
 
 
 ## 操作
