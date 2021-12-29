@@ -317,13 +317,16 @@ int ziplistSafeToAdd(unsigned char* zl, size_t add) {
 /* We use this function to receive information about a ziplist entry.
  * Note that this is not how the data is actually encoded, is just what we
  * get filled by a function in order to operate more easily. */
-/* ziplist节点结构 */
+/* ziplist节点结构，用于提取压缩列表entry的信息
+ *
+ * 注意：数据实际并不是这么保存的
+ */
 typedef struct zlentry {
     // prevrawlen：前置节点长度
     // prevrawlensize：编码prevrawlen所需字节数
     unsigned int prevrawlensize; /* Bytes used to encode the previous entry len*/
     unsigned int prevrawlen;     /* Previous entry len. */
-    // len：表示节点长度的字节数
+    // len：当前节点数据的长度
     // lensize：编码len所需字节数
     unsigned int lensize;        /* Bytes used to encode this entry type/len.
                                     For example strings have a 1, 2 or 5 bytes

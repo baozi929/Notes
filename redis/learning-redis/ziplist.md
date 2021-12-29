@@ -46,18 +46,9 @@
 
 + ziplist节点
 
-  + ```
-    typedef struct zlentry {
-        unsigned int prevrawlensize;
-    	unsigned int prevrawlen;
-        unsigned int lensize;
-        unsigned int len;
-    	unsigned int headersize;
-        unsigned char encoding;
-        unsigned char *p;
-    } zlentry;
-    ```
-
+  + | previous_entry_length | encoding | content |
+    | --------------------- | -------- | ------- |
+    
   + 说明：
 
     + previous_entry_length
@@ -71,10 +62,6 @@
         + 前一个节点长度大于等于254字节，则previous_entry_length的长度为5字节
           + 第一个字节为0xFE（254）
           + 后四个字节为前一个节点的长度
-
-    + headersize
-
-      + 当前元素的header长度，即previous_entry_length和encoding的长度之和（即prevrawlensize + lensize）
 
     + encoding
 
@@ -121,7 +108,36 @@
 
     + content
 
-+ 
+      + 存放实际数据，为INT或STR或空
+
++ 解码后的ziplist节点，zlentry
+
+  + ```
+    typedef struct zlentry {
+        unsigned int prevrawlensize;
+    	unsigned int prevrawlen;
+        unsigned int lensize;
+        unsigned int len;
+    	unsigned int headersize;
+        unsigned char encoding;
+        unsigned char *p;
+    } zlentry;
+    ```
+
+  + 注意，实际数据并不是通过这个结构来保存。通常通过zlentry提取压缩列表节点信息。
+
+  + 说明：
+
+    + prevrawlensize：previous_entry_length字段长度，为1或5字节
+    + prevrawlen：previous_entry_length字段内容，即前一个节点的长度
+    + lensize：用于编码当前节点类型、长度所需的字节数，为1、2或5字节
+    + len：表示当前节点数据的长度
+      + INT：根据类型，为1、2、3、4、8或0
+      + STR：即string长度
+    + headersize：当前元素的header长度，即previous_entry_length和encoding的长度之和（即prevrawlensize + lensize）
+
+    + encoding：当前节点编码
+    + p：指向数据
 
 
 ## 操作
