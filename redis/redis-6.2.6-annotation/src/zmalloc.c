@@ -107,12 +107,12 @@ static redisAtomic size_t used_memory = 0;
 
 // 内存分配默认的OOM错误处理，答应Error log并退出程序
 static void zmalloc_default_oom(size_t size) {
-	// 答应内存异常日志
+    // 答应内存异常日志
     fprintf(stderr, "zmalloc: Out of memory trying to allocate %zu bytes\n",
         size);
     fflush(stderr);
     // 退出程序
-	abort();
+    abort();
 }
 
 /* 内存溢出的函数指针 */
@@ -122,32 +122,32 @@ static void (*zmalloc_oom_handler)(size_t) = zmalloc_default_oom;
  * '*usable' is set to the usable size if non NULL. */
 /* 尝试分配内存，分配不了返回NULL */
 void *ztrymalloc_usable(size_t size, size_t *usable) {
-	// 判断size是否溢出
+    // 判断size是否溢出
     ASSERT_NO_SIZE_OVERFLOW(size);
-	// 分配内存
+    // 分配内存
     void *ptr = malloc(MALLOC_MIN_SIZE(size)+PREFIX_SIZE);
 
-	// 分配失败，返回NULL
+    // 分配失败，返回NULL
     if (!ptr) return NULL;
 
 // 有获取内存分配大小的方法 
 #ifdef HAVE_MALLOC_SIZE
-	// 获取指针分配内存的大小
+    // 获取指针分配内存的大小
     size = zmalloc_size(ptr);
-	// 更新内存统计
+    // 更新内存统计
     update_zmalloc_stat_alloc(size);
-	// 如果有指定 usable 指针，则设置
+    // 如果有指定 usable 指针，则设置
     if (usable) *usable = size;
-	// 返回分配的指针
+    // 返回分配的指针
     return ptr;
 #else
-	// 相当于设置 PREFIX_SIZE 这段位置为 size
+    // 相当于设置 PREFIX_SIZE 这段位置为 size
     *((size_t*)ptr) = size;
-	// 更新统计数据
+    // 更新统计数据
     update_zmalloc_stat_alloc(size+PREFIX_SIZE);
-	// 设置 usable
+    // 设置 usable
     if (usable) *usable = size;
-	// 计算真正的指针，即跳过 PREFIX_SIZE 大小的内存首地址
+    // 计算真正的指针，即跳过 PREFIX_SIZE 大小的内存首地址
     return (char*)ptr+PREFIX_SIZE;
 #endif
 }
@@ -241,53 +241,53 @@ void *zcalloc_usable(size_t size, size_t *usable) {
  * '*usable' is set to the usable size if non NULL. */
 /* 尝试内存重分配 */
 void *ztryrealloc_usable(void *ptr, size_t size, size_t *usable) {
-	// 断言size + PREFIX_SIZE 不溢出
+    // 断言size + PREFIX_SIZE 不溢出
     ASSERT_NO_SIZE_OVERFLOW(size);
 // 如果存在获取内存大小的方法
 #ifndef HAVE_MALLOC_SIZE
-	// 旧的指针的原始指针（包含PREFIX_SIZE）
+    // 旧的指针的原始指针（包含PREFIX_SIZE）
     void *realptr;
 #endif
-	// 旧指针的内存大小
+    // 旧指针的内存大小
     size_t oldsize;
-	// 新指针
+    // 新指针
     void *newptr;
 
     /* not allocating anything, just redirect to free. */
-	// 如果指针不为空，且要分配的长度为0，相当于释放内存
+    // 如果指针不为空，且要分配的长度为0，相当于释放内存
     if (size == 0 && ptr != NULL) {
-		// 释放内存
+        // 释放内存
         zfree(ptr);
-		// 设置可用内存为0，并返回NULL
+        // 设置可用内存为0，并返回NULL
         if (usable) *usable = 0;
         return NULL;
     }
     /* Not freeing anything, just redirect to malloc. */
-	// 如果指针为空，则直接尝试分配内存
+    // 如果指针为空，则直接尝试分配内存
     if (ptr == NULL)
         return ztrymalloc_usable(size, usable);
 
 // 如果存在获取内存大小的方法
 #ifdef HAVE_MALLOC_SIZE
-	// 获取指针原来的内存大小
+    // 获取指针原来的内存大小
     oldsize = zmalloc_size(ptr);
-	// 重分配给定大小内存
+    // 重分配给定大小内存
     newptr = realloc(ptr,size);
-	// 没有分配到，返回NULL
+    // 没有分配到，返回NULL
     if (newptr == NULL) {
         if (usable) *usable = 0;
         return NULL;
     }
 
-	// 减少旧的内存统计
+    // 减少旧的内存统计
     update_zmalloc_stat_free(oldsize);
-	// 获取新分配的内存大小
+    // 获取新分配的内存大小
     size = zmalloc_size(newptr);
-	// 增加内存统计
+    // 增加内存统计
     update_zmalloc_stat_alloc(size);
-	// 设置可用内存大小
+    // 设置可用内存大小
     if (usable) *usable = size;
-	// 返回新指针
+    // 返回新指针
     return newptr;
 #else
     realptr = (char*)ptr-PREFIX_SIZE;
@@ -516,7 +516,7 @@ size_t zmalloc_get_rss(void) {
     if ((fd = open(filename,O_RDONLY)) == -1) return 0;
     if (ioctl(fd, PIOCPSINFO, &info) == -1) {
         close(fd);
-	return 0;
+    return 0;
     }
 
     close(fd);

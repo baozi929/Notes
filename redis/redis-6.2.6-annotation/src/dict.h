@@ -56,18 +56,18 @@
  * 包含k-v对，以及下一个节点的指针
  * hash表节点会组成一个单向链表*/
 typedef struct dictEntry {
-	// 键
+    // 键
     void *key;
-	// 值
-	// u的所有成员占用同一段内存，同一时刻只能保存一个成员的值
-	// 节点的值v，可为指针，uint64整数，int64整数，浮点数
+    // 值
+    // u的所有成员占用同一段内存，同一时刻只能保存一个成员的值
+    // 节点的值v，可为指针，uint64整数，int64整数，浮点数
     union {
         void *val;
         uint64_t u64;
         int64_t s64;
         double d;
     } v;
-	// 指向下一个hash表节点
+    // 指向下一个hash表节点
     struct dictEntry *next;
 } dictEntry;
 
@@ -76,19 +76,19 @@ typedef struct dictEntry {
  * 相当于多态的实现
  */
 typedef struct dictType {
-	// 哈希函数，计算哈希值
+    // 哈希函数，计算哈希值
     uint64_t (*hashFunction)(const void *key);
-	// 复制key的函数
+    // 复制key的函数
     void *(*keyDup)(void *privdata, const void *key);
-	// 复制val的函数
+    // 复制val的函数
     void *(*valDup)(void *privdata, const void *obj);
-	// 比较key的函数
+    // 比较key的函数
     int (*keyCompare)(void *privdata, const void *key1, const void *key2);
-	// key的析构函数
+    // key的析构函数
     void (*keyDestructor)(void *privdata, void *key);
-	// val的析构函数
+    // val的析构函数
     void (*valDestructor)(void *privdata, void *obj);
-	// 根据扩容后数组的内存和负载因子判断是否可以扩容
+    // 根据扩容后数组的内存和负载因子判断是否可以扩容
     int (*expandAllowed)(size_t moreMem, double usedRatio);
 } dictType;
 
@@ -98,29 +98,29 @@ typedef struct dictType {
  * 每个字典都使用2个哈希表，从而实现incremental rehash
  */
 typedef struct dictht {
-	// hash表的指针数组,dictEntry*表示hash节点的指针，dictEntry**表示数组首地址
+    // hash表的指针数组,dictEntry*表示hash节点的指针，dictEntry**表示数组首地址
     dictEntry **table;
-	// hash数组大小，一般为2^n（如果不是需要通过取模来获取hash表槽索引，取模操作比&操作性能差一些）
+    // hash数组大小，一般为2^n（如果不是需要通过取模来获取hash表槽索引，取模操作比&操作性能差一些）
     unsigned long size;
-	// hash数组长度掩码，一般sizemask = 2^n - 1
+    // hash数组长度掩码，一般sizemask = 2^n - 1
     unsigned long sizemask;
-	// hash表k-v对的个数
+    // hash表k-v对的个数
     unsigned long used;
 } dictht;
 
 /* 字典 */
 typedef struct dict {
-	// 类型特定函数
+    // 类型特定函数
     dictType *type;
-	// 私有数据
+    // 私有数据
     void *privdata;
     // 哈希表，字典中包含2个hash表
-	// 常用的hash表为ht[0]，当rehash时，会使用ht[1]做incremental rehash
-	dictht ht[2];
-	// rehash索引，当rehash不在进行时，rehashidx == -1
+    // 常用的hash表为ht[0]，当rehash时，会使用ht[1]做incremental rehash
+    dictht ht[2];
+    // rehash索引，当rehash不在进行时，rehashidx == -1
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
-	// pauserehash > 0 表示rehash暂停；= 0 表示可以rehash
-	// 作用：因为安全迭代器和扫描可能同时存在多个，导致pauserehash的值可能 > 1
+    // pauserehash > 0 表示rehash暂停；= 0 表示可以rehash
+    // 作用：因为安全迭代器和扫描可能同时存在多个，导致pauserehash的值可能 > 1
     int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
 } dict;
 
@@ -130,18 +130,18 @@ typedef struct dict {
  * should be called while iterating. */
 /* 字典迭代器 */
 typedef struct dictIterator {
-	// 被迭代的字典的指针
+    // 被迭代的字典的指针
     dict *d;
-	// 迭代器当前指向的哈希表索引下标
+    // 迭代器当前指向的哈希表索引下标
     long index;
-	// table -- 正在迭代的hash表数组ht的索引，值为0或1
-	// save  -- 标识该迭代器是否安全
+    // table -- 正在迭代的hash表数组ht的索引，值为0或1
+    // save  -- 标识该迭代器是否安全
     int table, safe;
-	// entry     -- 当前已返回的节点
-	// nextEntry -- 下一个节点
+    // entry     -- 当前已返回的节点
+    // nextEntry -- 下一个节点
     dictEntry *entry, *nextEntry;
     /* unsafe iterator fingerprint for misuse detection. */
-	// 字典当前状态的签名，hash值
+    // 字典当前状态的签名，hash值
     long long fingerprint;
 } dictIterator;
 

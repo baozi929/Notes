@@ -57,14 +57,14 @@ struct __attribute__ ((__packed__)) sdshdr5 {
 };
 /* 最长 2^8-1 长度的sdsHdr */
 struct __attribute__ ((__packed__)) sdshdr8 {
-	// 已使用长度
+    // 已使用长度
     uint8_t len; /* used */
     // 分配的长度，不包含头和空终止符'\0'
-	uint8_t alloc; /* excluding the header and null terminator */
-	// 低三位表示保存类型
+    uint8_t alloc; /* excluding the header and null terminator */
+    // 低三位表示保存类型
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
     // 数据空间
-	char buf[];
+    char buf[];
 };
 /* 最长 2^16-1 长度的sdsHdr */
 struct __attribute__ ((__packed__)) sdshdr16 {
@@ -107,9 +107,9 @@ struct __attribute__ ((__packed__)) sdshdr64 {
 
 /* 内联函数，用于获取sds字符串长度 */
 static inline size_t sdslen(const sds s) {
-	// sds前一个char为sdsHdr的flag
+    // sds前一个char为sdsHdr的flag
     unsigned char flags = s[-1];
-	// 取flag的最后3位
+    // 取flag的最后3位
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
             return SDS_TYPE_5_LEN(flags);
