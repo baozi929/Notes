@@ -100,7 +100,7 @@
     + compress：quicklist的压缩深度，与LZF相关；0=off。quicklistNode节点个数较多时，我们经常访问两端的数据，为了进一步节省空间，Redis允许对中间的quicklistNode节点进行压缩。可通过Redis修改参数list-compress-depth来设置compress参数。该值的具体含义：两端各有compress个节点不压缩
 
       + 图示：3个节点，compress=1
-        + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/quicklist_compress1.png" width="600"/>
+        + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/quicklist_compress.png" width="600"/>
 
     + quicklistBookmark：在给quicklist分配内存时使用，不使用时不占用空间
 
