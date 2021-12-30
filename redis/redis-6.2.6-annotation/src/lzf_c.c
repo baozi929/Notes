@@ -95,6 +95,12 @@
  *
  */
 
+/* in_data：待压缩数据
+ * in_len： 待压缩数据长度
+ *
+ * out_data：压缩后数据
+ * out_len： 压缩后数据长度
+ */
 unsigned int
 lzf_compress (const void *const in_data, unsigned int in_len,
 	      void *out_data, unsigned int out_len
