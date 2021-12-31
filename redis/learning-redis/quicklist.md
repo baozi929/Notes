@@ -201,17 +201,182 @@
     }
     ```
 
-  + 
+  + 初始化的quicklist
+
+    + | head | tail | len  | count | fill | compress | bookmark_count |
+      | ---- | ---- | ---- | ----- | ---- | -------- | -------------- |
+      | NULL | NULL | 0    | 0     | -2   | 0        | 0              |
+
+    + 说明：
+
+      + Redis**默认**quicklistNode中的每个ziplist的**大小限制为8KB**，且**不对节点进行压缩**
 
 + 添加元素
 
+  + 在头节点插入新的entry
+
+    + ```
+      int quicklistPushHead(quicklist *quicklist, void *value, size_t sz) {
+          quicklistNode *orig_head = quicklist->head;
+          assert(sz < UINT32_MAX); /* TODO: add support for quicklist nodes that are sds encoded (not zipped) */
+          if (likely(
+                  _quicklistNodeAllowInsert(quicklist->head, quicklist->fill, sz))) {
+              quicklist->head->zl =
+                  ziplistPush(quicklist->head->zl, value, sz, ZIPLIST_HEAD);
+              quicklistNodeUpdateSz(quicklist->head);
+          } else {
+              quicklistNode *node = quicklistCreateNode();
+              node->zl = ziplistPush(ziplistNew(), value, sz, ZIPLIST_HEAD);
+      
+              quicklistNodeUpdateSz(node);
+              _quicklistInsertNodeBefore(quicklist, quicklist->head, node);
+          }
+          quicklist->count++;
+          quicklist->head->count++;
+          return (orig_head != quicklist->head);
+      }
+      ```
+
+    + 说明：
+
+      + 判断是否可以在头节点插入
+        + 可以插入头结点，利用ziplist的接口进行插入
+        + 不可以插入头结点，新建quicklistNode节点进行插入，并将节点插入quicklist的原头结点之前
+          + 注意：ziplist已包含节点的情况下，插入节点可能导致ziplist的连锁更新（压缩深度ziplist->compress有要求）
+      + 更新quicklist相关参数
+      + 返回值：
+        + 0，没有新建节点
+        + 1，新建了节点，该节点为ziplist新的头节点
+
+  + 在尾节点插入新的entry
+
+    + ```
+      int quicklistPushTail(quicklist *quicklist, void *value, size_t sz) {
+      ....
+      }
+      ```
+      
+    + 说明：
+    
+      + 与头节点插入类似
+    
+  + 在任意位置插入
+
+    + ```
+      void quicklistInsertBefore(quicklist *quicklist, quicklistEntry *entry,
+                                 void *value, const size_t sz);
+      void quicklistInsertAfter(quicklist *quicklist, quicklistEntry *entry,
+                                void *value, const size_t sz);
+      ```
+
+    + 说明：
+
+      + 二者均调用了以下函数，after参数表明在entry前还是后插入新的entry：
+
+        + ```
+          REDIS_STATIC void _quicklistInsert(quicklist *quicklist, quicklistEntry *entry,
+                                             void *value, const size_t sz, int after)
+          ```
+
+        + 插入分为以下几种情况：
+
+          + 当前节点没满
+
+            + after = 1，在entry后插入
+            + after = 0，在entry前插入
+
+          + 当前节点满了
+
+            + entry为当前ziplist中最后一个entry，下一个节点没满，插入下一个节点的头
+
+            + entry为当前ziplist中第一个entry，上一个节点没满，插入上一个节点的尾
+
+            + entry为下一个节点的最后一个entry，且下一个节点也满了，要插入entry之后；或entry为前一个节点的第一个entry，且前一个节点也满了，要插入entry之前
+              + 需要新建一个quicklistNode，将新的entry插入节点中的ziplist，并将节点插入quicklist
+            + 其他情况，需要split节点，找到插入位置，然后再插入entry
+
 + 删除元素
+
+  + 删除指定位置的元素
+
+    + ```
+      int quicklistIndex(const quicklist *quicklist, const long long idx,
+                         quicklistEntry *entry);
+      ```
+
+  + 弹出头部或者尾部的元素，并取出其值
+
+    + ```
+      int quicklistPop(quicklist *quicklist, int where, unsigned char **data,
+                       unsigned int *sz, long long *slong);
+      ```
+
+  + 删除指定区间的元素
+
+    + ```
+      int quicklistDelRange(quicklist *quicklist, const long start,
+                            const long count);
+      ```
 
 + 更改元素
 
+  + 将指定索引的entry替换为指定数据、长度的entry
+
+    + ```
+      int quicklistReplaceAtIndex(quicklist *quicklist, long index, void *data,
+                                  int sz) {
+          quicklistEntry entry;
+          if (likely(quicklistIndex(quicklist, index, &entry))) {
+              /* quicklistIndex provides an uncompressed node */
+              entry.node->zl = ziplistReplace(entry.node->zl, entry.zi, data, sz);
+              quicklistNodeUpdateSz(entry.node);
+              quicklistCompress(quicklist, entry.node);
+              return 1;
+          } else {
+              return 0;
+          }
+      }
+      ```
+
 + 查找元素
+
+  + 根据idx寻找quicklist中的某一个元素，将其信息存放到quicklistEntry中
+
+    + ```
+      int quicklistIndex(const quicklist *quicklist, const long long idx,
+                         quicklistEntry *entry);
+      ```
+
+  + 获取迭代器（指定元素索引和不指定元素索引版本）
+
+    + ```
+      quicklistIter *quicklistGetIterator(const quicklist *quicklist, int direction);
+      quicklistIter *quicklistGetIteratorAtIdx(const quicklist *quicklist,
+                                               const int direction,
+                                               const long long idx);
+      ```
+
+  + 迭代器遍历，entry为对应的entry的信息
+
+    + ```
+      int quicklistNext(quicklistIter *iter, quicklistEntry *entry);
+      ```
 
 
 
 ## API
 
++ 设置quicklist属性
+
+  + ```
+    void quicklistSetCompressDepth(quicklist *quicklist, int compress);
+    void quicklistSetFill(quicklist *quicklist, int fill);
+    void quicklistSetOptions(quicklist *quicklist, int fill, int depth);
+    ```
+
++ 在初始化时设置quicklist属性
+
+  + ```
+    quicklist *quicklistNew(int fill, int compress);
+    quicklist *quicklistCreateFromZiplist(int fill, int compress, unsigned char *zl);
+    ```

@@ -63,7 +63,7 @@ typedef struct quicklistNode {
     // zl指向的容器类型，1表示None，2表示ziplist
     unsigned int container : 2;  /* NONE==1 or ZIPLIST==2 */
     // recompress表示这个节点之前是否为压缩节点
-    // 如果是，则在使用之前要解压缩，时候之后要重新压缩
+    // 如果是，则在使用之前要解压缩，使用之后要重新压缩
     unsigned int recompress : 1; /* was this node previous compressed? */
 
     unsigned int attempted_compress : 1; /* node can't compress; too small */
@@ -137,7 +137,7 @@ typedef struct quicklist {
     unsigned long count;        /* total count of all entries in all ziplists */
     // quicklist中quicklistNode的数量
     unsigned long len;          /* number of quicklistNodes */
-    // 每个节点最大容量
+    // 每个节点最大容量（正数：限制ziplist包含的项数；负数：限制ziplistNode的内存）
     // 存放参数list-max-ziplist-size的值
     int fill : QL_FILL_BITS;              /* fill factor for individual nodes */
     // quicklist的压缩深度，与LZF相关；0=off
@@ -169,7 +169,7 @@ typedef struct quicklistEntry {
     const quicklist *quicklist;
     // 指向当前元素所在的quicklistNode
     quicklistNode *node;
-    // 指向当前元素所在的ziplist
+    // 指向当前元素所在的ziplist的指针
     unsigned char *zi;
     // 通过检查*value是否为NULL可以确定entry的数据类型是STR还是INT
     // 当前节点的字符串内容

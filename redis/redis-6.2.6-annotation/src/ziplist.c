@@ -936,6 +936,7 @@ unsigned char *ziplistResize(unsigned char *zl, size_t len) {
  *
  * The pointer "p" points to the first entry that does NOT need to be
  * updated, i.e. consecutive fields MAY need an update. */
+
 /* 当一个节点添加到某个节点之前的时候，如果原节点的prevlen不足以保存新节点的长度，
  * 需要对原节点的空间进行扩展（1byte -> 5bytes）
  * 
@@ -1335,27 +1336,49 @@ unsigned char *__ziplistInsert(unsigned char *zl, unsigned char *p, unsigned cha
  * On success: returns the merged ziplist (which is expanded version of either
  * 'first' or 'second', also frees the other unused input ziplist, and sets the
  * input ziplist argument equal to newly reallocated ziplist return value. */
+
+/* 合并2个压缩列表，第二个压缩列表拼在第一个压缩列表之后
+ *
+ * 注意：新合并的大压缩列表需要重新分配内存来存储
+ *       第一个或第二个压缩列表都可以用于存放结果，但是不用的那个需要释放，并设为NULL
+ *
+ * 经过该函数的调用，输入的两个压缩列表不再有效，因为它们或者被改变，或者被释放
+ *
+ * 返回值：
+ * NULL           —— 合并失败
+ * 合并的压缩列表 —— 合并成功（可能是第一个或第二个压缩列表的扩张版本）
+ */
 unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
     /* If any params are null, we can't merge, so NULL. */
+    // 任一输入为空，不能合并
     if (first == NULL || *first == NULL || second == NULL || *second == NULL)
         return NULL;
 
     /* Can't merge same list into itself. */
+    // 不能自己和自己合并
     if (*first == *second)
         return NULL;
 
+    // 第一个列表的字节长度与entry数量
     size_t first_bytes = intrev32ifbe(ZIPLIST_BYTES(*first));
     size_t first_len = intrev16ifbe(ZIPLIST_LENGTH(*first));
 
+    // 第二个列表的字节长度与entry数量
     size_t second_bytes = intrev32ifbe(ZIPLIST_BYTES(*second));
     size_t second_len = intrev16ifbe(ZIPLIST_LENGTH(*second));
 
     int append;
     unsigned char *source, *target;
     size_t target_bytes, source_bytes;
+
     /* Pick the largest ziplist so we can resize easily in-place.
      * We must also track if we are now appending or prepending to
      * the target ziplist. */
+    // 选择大的压缩列表，这样可以就地resize
+    // 需要记录是要拼到目标zl的前还是后
+
+    // 第一个表更大，target = first，source = second，append = 1
+    // 即保留第一个表，将第二个表拼接到第一个表之后
     if (first_len >= second_len) {
         /* retain first, append second to first. */
         target = *first;
@@ -1363,6 +1386,8 @@ unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
         source = *second;
         source_bytes = second_bytes;
         append = 1;
+    // 第二个表更大，target = second，source = first，append = 0
+    // 即保留第二个表，将第一个表拼接到第二个表之前
     } else {
         /* else, retain second, prepend first to second. */
         target = *second;
@@ -1373,26 +1398,33 @@ unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
     }
 
     /* Calculate final bytes (subtract one pair of metadata) */
+    // 计算最终的字节数以及entry数量
     size_t zlbytes = first_bytes + second_bytes -
                      ZIPLIST_HEADER_SIZE - ZIPLIST_END_SIZE;
     size_t zllength = first_len + second_len;
 
     /* Combined zl length should be limited within UINT16_MAX */
+    // zl的entry数量限制
     zllength = zllength < UINT16_MAX ? zllength : UINT16_MAX;
 
     /* larger values can't be stored into ZIPLIST_BYTES */
+    // zl的字节数限制
     assert(zlbytes < UINT32_MAX);
 
     /* Save offset positions before we start ripping memory apart. */
+    // 获取最后一个entry的offset
     size_t first_offset = intrev32ifbe(ZIPLIST_TAIL_OFFSET(*first));
     size_t second_offset = intrev32ifbe(ZIPLIST_TAIL_OFFSET(*second));
 
     /* Extend target to new zlbytes then append or prepend source. */
+    // 扩展内存
     target = zrealloc(target, zlbytes);
+    // 按照之前定好的append方式将两个列表拼在一起
     if (append) {
         /* append == appending to target */
         /* Copy source after target (copying over original [END]):
          *   [TARGET - END, SOURCE - HEADER] */
+        // 第二个表拼到第一个表之后，去除第二个表的header
         memcpy(target + target_bytes - ZIPLIST_END_SIZE,
                source + ZIPLIST_HEADER_SIZE,
                source_bytes - ZIPLIST_HEADER_SIZE);
@@ -1401,13 +1433,16 @@ unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
         /* Move target *contents* exactly size of (source - [END]),
          * then copy source into vacated space (source - [END]):
          *   [SOURCE - END, TARGET - HEADER] */
+        // 将第二个表移到最后
         memmove(target + source_bytes - ZIPLIST_END_SIZE,
                 target + ZIPLIST_HEADER_SIZE,
                 target_bytes - ZIPLIST_HEADER_SIZE);
+        // 将第一个表拼到第二个表之前
         memcpy(target, source, source_bytes - ZIPLIST_END_SIZE);
     }
 
     /* Update header metadata. */
+    // 更新zlbytes、zllength和zltail
     ZIPLIST_BYTES(target) = intrev32ifbe(zlbytes);
     ZIPLIST_LENGTH(target) = intrev16ifbe(zllength);
     /* New tail offset is:
@@ -1423,9 +1458,11 @@ unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
      * correct prev length value (then it assumes the rest of the list is okay).
      * We tell CascadeUpdate to start at the first ziplist's tail element to fix
      * the merge seam. */
+    // 级联更新（从第二个表的第一个节点开始，prevlen可能发生变化，导致需要级联更新后续entry）
     target = __ziplistCascadeUpdate(target, target+first_offset);
 
     /* Now free and NULL out what we didn't realloc */
+    // 释放不使用的表，并设为NULL
     if (append) {
         zfree(*second);
         *second = NULL;
@@ -1438,35 +1475,63 @@ unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
     return target;
 }
 
+/* 长度为slen的字符串s，从头或尾插入压缩列表zl
+ * where表示从头还是尾插入
+ *
+ * 返回值：
+ * 插入完成后的压缩列表zl
+ */
 unsigned char *ziplistPush(unsigned char *zl, unsigned char *s, unsigned int slen, int where) {
     unsigned char *p;
+    // 根据where取出p，即zl的第一个或最后一个entry
     p = (where == ZIPLIST_HEAD) ? ZIPLIST_ENTRY_HEAD(zl) : ZIPLIST_ENTRY_END(zl);
+    // 将s插入ziplist
     return __ziplistInsert(zl,p,s,slen);
 }
 
 /* Returns an offset to use for iterating with ziplistNext. When the given
  * index is negative, the list is traversed back to front. When the list
  * doesn't contain an element at the provided index, NULL is returned. */
+/* 根据给定索引，遍历列表，返回索引指定节点的指针
+ * 
+ * 如果索引为正（从0开始），从表头向表尾遍历
+ * 如果索引为负（从-1开始），从表尾向表头遍历
+ *
+ * 如果索引超过列表节点数量，或者列表为空，返回NULL
+ */
 unsigned char *ziplistIndex(unsigned char *zl, int index) {
     unsigned char *p;
     unsigned int prevlensize, prevlen = 0;
+    // 取压缩列表字节数
     size_t zlbytes = intrev32ifbe(ZIPLIST_BYTES(zl));
+
+    // 索引为负，从尾到头
     if (index < 0) {
+        // 索引转换为正数
         index = (-index)-1;
+
+        // 找到最后一个entry
         p = ZIPLIST_ENTRY_TAIL(zl);
+
+        // 列表不为空
         if (p[0] != ZIP_END) {
             /* No need for "safe" check: when going backwards, we know the header
              * we're parsing is in the range, we just need to assert (below) that
              * the size we take doesn't cause p to go outside the allocation. */
+            // 找p对应的prevlen
             ZIP_DECODE_PREVLEN(p, prevlensize, prevlen);
+            // 从尾开始，向前遍历，找index对应的entry
             while (prevlen > 0 && index--) {
                 p -= prevlen;
                 assert(p >= zl + ZIPLIST_HEADER_SIZE && p < zl + zlbytes - ZIPLIST_END_SIZE);
                 ZIP_DECODE_PREVLEN(p, prevlensize, prevlen);
             }
         }
+    // 索引为正，从头到尾
     } else {
+        // 找到第一个entry
         p = ZIPLIST_ENTRY_HEAD(zl);
+        // 从头开始，向后遍历，找到index对应的entry
         while (index--) {
             /* Use the "safe" length: When we go forward, we need to be careful
              * not to decode an entry header if it's past the ziplist allocation. */
@@ -1475,9 +1540,12 @@ unsigned char *ziplistIndex(unsigned char *zl, int index) {
                 break;
         }
     }
+    // 没找到，返回NULL
     if (p[0] == ZIP_END || index > 0)
         return NULL;
+
     zipAssertValidEntry(zl, zlbytes, p);
+    // 找到了，返回索引指定entry对应的指针
     return p;
 }
 
@@ -1602,7 +1670,7 @@ unsigned char *ziplistInsert(unsigned char *zl, unsigned char *p, unsigned char 
 /* Delete a single entry from the ziplist, pointed to by *p.
  * Also update *p in place, to be able to iterate over the
  * ziplist, while deleting entries. */
-/* 从压缩列表zl中删除指定节点*p */
+/* 从压缩列表zl中删除指定节点*p，原地更新p指向的位置 */
 unsigned char *ziplistDelete(unsigned char *zl, unsigned char **p) {
     size_t offset = *p-zl;
     zl = __ziplistDelete(zl,*p,1);
@@ -1616,14 +1684,21 @@ unsigned char *ziplistDelete(unsigned char *zl, unsigned char **p) {
 }
 
 /* Delete a range of entries from the ziplist. */
-/* 从压缩列表zl的对应索引index的节点开始，删除num个元素 */
+/* 从压缩列表zl的对应索引index的节点开始，删除num个元素
+ *
+ * 索引index可为正或负（为负时从最后一个entry向前遍历找）
+ */
 unsigned char *ziplistDeleteRange(unsigned char *zl, int index, unsigned int num) {
+    // 找索引对应的entry的指针
     unsigned char *p = ziplistIndex(zl,index);
+    // 从找到的entry开始，删除num个entry
     return (p == NULL) ? zl : __ziplistDelete(zl,p,num);
 }
 
 /* Replaces the entry at p. This is equivalent to a delete and an insert,
  * but avoids some overhead when replacing a value of the same size. */
+
+/* 用特定数据s和长度slen的entry取代p指向的entry */
 unsigned char *ziplistReplace(unsigned char *zl, unsigned char *p, unsigned char *s, unsigned int slen) {
 
     /* get metadata of the current entry */
@@ -1748,6 +1823,7 @@ unsigned char *ziplistFind(unsigned char *zl, unsigned char *p, unsigned char *v
 }
 
 /* Return length of ziplist. */
+/* 返回ziplist的长度(entry数量) */
 unsigned int ziplistLen(unsigned char *zl) {
     unsigned int len = 0;
     if (intrev16ifbe(ZIPLIST_LENGTH(zl)) < UINT16_MAX) {
@@ -1767,6 +1843,7 @@ unsigned int ziplistLen(unsigned char *zl) {
 }
 
 /* Return ziplist blob size in bytes. */
+/* 返回ziplist占用的字节数 */
 size_t ziplistBlobLen(unsigned char *zl) {
     return intrev32ifbe(ZIPLIST_BYTES(zl));
 }
