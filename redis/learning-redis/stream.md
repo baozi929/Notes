@@ -21,5 +21,66 @@
     + 消费组中每个成员也有一个待确认消息队列，维护该消费者已消费但尚未确认的消息
 + Stream的底层实现
   + listpack
-  + Rax
+  + Rax树
++ 代码
+  + stream.h
+  + listpack.c、listpack.h、listpack_malloc.h
+  + rax.h、rax.c、rax_malloc.h
+  
+
+## listpack
+
++ 什么是listpack
+
+  + A lists of strings serialization format，即将一个字符串列表进行序列化存储
+  + 作用：存储字符串或整型
+
++ 结构图
+
+  + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/stream_listpack.png" width="400"/>
+
+  + 说明：
+
+    + Total Bytes：4字节
+
+      + 整个listpack的空间大小，每个listpack最多占2^32-1个字节（4,294,967,295字节）
+
+    + Num Elem：2字节
+
+      + listpack中元素个数，即entry的个数
+      + 注意：可以存放大于65535个entry，此时Num Elem被设置为65535。此时若需要获取元素个数，需要遍历整个listpack
+
+    + Entry
+
+      + listpack的元素，内容为字符串或整型
+
+      + 每个entry分为3个部分
+
+        + encode：1字节，为该元素的编码方式
+
+          + | Encode的内容 | 含义                                                         |
+            | ------------ | ------------------------------------------------------------ |
+            | 0xxx xxx     | 7位无符号整型，后七位为数据(content)                         |
+            | 10LL LLLL    | 6为长度的字符串，后6bit为字符串长度，之后为字符串内容        |
+            | 110x xxx     | 13位整型，后5bit以及下个字节为数据内容                       |
+            | 1110 LLLL    | 12位长度的字符串，后4bit以及下个字节为字符串长度，之后为字符串内容 |
+            | 1111 0000    | 32位长度的字符串，后4字节为字符串长度，之后为字符串内容      |
+            | 1111 0001    | 16位整型，后2个字节为数据                                    |
+            | 1111 0010    | 24位整型，后3个字节为数据                                    |
+            | 1111 0011    | 32位整型，后4个字节为数据                                    |
+            | 1111 0100    | 64位整型，后8个字节为数据                                    |
+
+            
+
+        + content：
+
+        + backlen：Entry的长度（Encode+content）
+
+    + End：1字节
+
+      + listpack的结束标志，内容为0xFF
+
++ 
+
+
 
