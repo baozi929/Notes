@@ -49,17 +49,17 @@ typedef struct listIter {
 
 /* 双向链表结构*/
 typedef struct list {
-	// 表头节点
+    // 表头节点
     listNode *head;
-	// 表尾节点
+    // 表尾节点
     listNode *tail;
-	// 节点值复制函数
+    // 节点值复制函数
     void *(*dup)(void *ptr);
-	// 节点值释放函数
+    // 节点值释放函数
     void (*free)(void *ptr);
-	// 节点值匹配函数
+    // 节点值匹配函数
     int (*match)(void *ptr, void *key);
-	// 链表节点数量
+    // 链表节点数量
     unsigned long len;
 } list;
 

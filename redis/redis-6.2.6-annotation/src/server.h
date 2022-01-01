@@ -675,17 +675,17 @@ typedef struct RedisModuleDigest {
 #define OBJ_FIRST_SPECIAL_REFCOUNT OBJ_STATIC_REFCOUNT
 /* redis对象 */
 typedef struct redisObject {
-	// 类型
+    // 类型
     unsigned type:4;
-	// 编码
+    // 编码
     unsigned encoding:4;
-	// 对象最后一次被访问的时间
+    // 对象最后一次被访问的时间
     unsigned lru:LRU_BITS; /* LRU time (relative to global lru_clock) or
                             * LFU data (least significant 8 bits frequency
                             * and most significant 16 bits access time). */
     // 引用计数
-	int refcount;
-	// 指向实际值的指针
+    int refcount;
+    // 指向实际值的指针
     void *ptr;
 } robj;
 
@@ -1007,29 +1007,29 @@ struct sharedObjectsStruct {
  * 跳跃列表（Skip List）与其在Redis中的实现详解： https://www.jianshu.com/p/09c3b0835ba6
  */
 typedef struct zskiplistNode {
-	// 节点数据
+    // 节点数据
     sds ele;
-	// 数据对应的分数
+    // 数据对应的分数
     double score;
-	// 指向链表前一个节点的指针
+    // 指向链表前一个节点的指针
     struct zskiplistNode *backward;
-	// 指向各层链表后一个节点的指针
-	// level[]是一个柔性数组，占用的内存不在zskiplistNode中，而需要插入节点时单独为其分配
+    // 指向各层链表后一个节点的指针
+    // level[]是一个柔性数组，占用的内存不在zskiplistNode中，而需要插入节点时单独为其分配
     struct zskiplistLevel {
-		// 每层对应一个后向指针
+        // 每层对应一个后向指针
         struct zskiplistNode *forward;
-		// 表示当前指针跨越了多少节点，用于计算元素排名
+        // 表示当前指针跨越了多少节点，用于计算元素排名
         unsigned long span;
     } level[];
 } zskiplistNode;
 
 /* zskiplist结构 */
 typedef struct zskiplist {
-	// 头指针header，尾指针tail
+    // 头指针header，尾指针tail
     struct zskiplistNode *header, *tail;
-	// 链表长度，即链表包含的节点总数
+    // 链表长度，即链表包含的节点总数
     unsigned long length;
-	// skiplist的总层数，即所有节点层数的最大值
+    // skiplist的总层数，即所有节点层数的最大值
     int level;
 } zskiplist;
 
@@ -2175,11 +2175,11 @@ void ACLUpdateDefaultUserPassword(sds password);
 /* Struct to hold an inclusive/exclusive range spec by score comparison. */
 /* 表示开区间/闭区间范围的结构 */
 typedef struct {
-	// 最小值，最大值
+    // 最小值，最大值
     double min, max;
-	// 最小值和最大值是否包含在范围内
-	// 1 —— 不包含
-	// 0 —— 包含
+    // 最小值和最大值是否包含在范围内
+    // 1 —— 不包含
+    // 0 —— 包含
     int minex, maxex; /* are min or max exclusive? */
 } zrangespec;
 
