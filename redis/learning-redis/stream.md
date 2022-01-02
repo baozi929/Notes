@@ -93,7 +93,138 @@
 + 介绍
   + 前缀树是字符串查找时常用的数据结构，能在字符串集合中快速查找到某个字符串。但由于每个节点只存储字符串中的一个字符，有时会造成空间的浪费
   + Rax的出现就是为了解决这个问题。它不仅可以存储字符串，还可以为字符串设置一个值，即key-value对
-  + Rax树通过节点压缩节省时间。。。
+  + Rax树通过节点压缩节省时间
+    + 图示：
+      + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/stream_rax.png" width="400"/>
 
++ 结构
 
+  + Rax树
+
+    + ```
+      typedef struct rax {
+          raxNode *head;
+          uint64_t numele;
+          uint64_t numnodes;
+      } rax;
+      ```
+
+    + 说明：
+
+      + head：指向头节点
+      + numele：元素个数（key的个数）
+      + numnodes：节点个数
+
+  + Rax树的节点
+
+    + ```
+      typedef struct raxNode {
+          uint32_t iskey:1;     /* Does this node contain a key? */
+          uint32_t isnull:1;    /* Associated value is NULL (don't store it). */
+          uint32_t iscompr:1;   /* Node is compressed. */
+          uint32_t size:29;     /* Number of children, or compressed string len. */
+          unsigned char data[];
+      } raxNode;
+      ```
+
+    + 说明：
+
+      + iskey：1bit，当前节点是否包含1个key
+      + isnull：1bit，当前key对应的value是否为空
+      + iscmpr：1bit，当前节点是否为压缩节点
+      + size：29bit，压缩节点压缩的字符串长度，或非压缩节点的子节点个数
+      + data：包含填充字段，同时存储当前节点包含字符串以及子节点的指针、key对应的value指针
+
+    + raxNode的类型：
+
+      + 压缩节点
+
+        + 结构图
+
+          + | iskey | isnull | iscompr=1 | size=3 | A    | B    | C    | pad  | C-ptr | value-ptr? |
+            | ----- | ------ | --------- | ------ | ---- | ---- | ---- | ---- | ----- | ---------- |
+
+          + 说明：
+
+            + iskey为1且isnull为0时，value-ptr存在，否则value-ptr不存在
+            + iscompr=1，即该节点为压缩节点
+            + size=3，即存储了3个字符；紧接着的三个字符即为该节点存储的字符串，根据字符串的长度确定是否需要填充字段（填充必要的字节，使得后面的指针地址放到何时的位置）
+            + 因为是压缩节点，所以只有最后一个字符有节点
+
+      + 非压缩节点
+
+        + 结构图
+
+          + | iskey | isnull | iscompr=0 | size=2 | X    | Y    | pad  | X-ptr | Y-ptr | value-ptr? |
+            | ----- | ------ | --------- | ------ | ---- | ---- | ---- | ----- | ----- | ---------- |
+
+            
+
+          + 说明：
+
+            + 与压缩节点的区别：每个字符都有一个子节点。
+            + 字符个数小于2时，都是非压缩节点。
+
+  + raxStack结构
+
+    + ```
+      typedef struct raxStack {
+          void **stack;
+          size_t items, maxitems;
+          void *static_items[RAX_STACK_STATIC_ITEMS];
+          int oom;
+      } raxStack;
+      ```
+
+    + 说明：
+
+      + stack：记录路径，指针可能指向static_items（路径较短时）或堆空间内存
+      + items，maxitems：stack指向的空间的已用空间以及最大空间
+      + static_items：数组，数组中的每个元素都是指针，用于存储路径
+      + oom：当前栈是否出现过内存溢出
+
+    + 作用：
+
+      + 存储从根节点到当前节点的路径
+
+  + raxIterator
+
+    + ```
+      typedef struct raxIterator {
+          int flags;
+          rax *rt;                /* Radix tree we are iterating. */
+          unsigned char *key;     /* The current string. */
+          void *data;             /* Data associated to this key. */
+          size_t key_len;         /* Current key length. */
+          size_t key_max;         /* Max key len the current key buffer can hold. */
+          unsigned char key_static_string[RAX_ITER_STATIC_LEN];
+          raxNode *node;          /* Current node. Only for unsafe iteration. */
+          raxStack stack;         /* Stack used for unsafe iteration. */
+          raxNodeCallback node_cb; /* Optional node callback. Normally set to NULL. */
+      } raxIterator;
+      ```
+
+    + flag：迭代器标志位，目前有以下三种：
+
+      + RAX_ITER_JUST_SEEKED：表示迭代器指向的元素时刚刚搜索过的
+      + RAX_ITER_EOF：表示当前迭代器已经遍历到Rax树的最后一个节点
+      + RAX_ITER_SAFE：表示当前迭代器为安全迭代器
+
+    + rt：迭代器当前遍历的Rax树
+
+    + key：迭代器当前遍历到的key，该指针指向key_static_string或者从堆中申请的内存
+
+    + data：与key关联的value
+
+    + key_len：当前key的长度
+
+    + key_max：当前key buffer最长允许的key长度
+
+    + key_static_string：key的默认存储空间，当key比较大时，会使用堆空间内存
+
+    + node：当前key所在的raxNode
+
+    + stack：记录从根节点到当前节点的路径，用于raxNode的向上遍历
+
+    + node_cb：节点的callback函数，通常为NULL
 
