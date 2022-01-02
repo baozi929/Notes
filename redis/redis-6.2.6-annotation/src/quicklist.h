@@ -174,7 +174,7 @@ typedef struct quicklistEntry {
     // 通过检查*value是否为NULL可以确定entry的数据类型是STR还是INT
     // 当前节点的字符串内容
     unsigned char *value;
-    // 当前节点的整形值
+    // 当前节点的整型值
     long long longval;
     // 该节点的数据占用的字节数，配合value使用
     unsigned int sz;

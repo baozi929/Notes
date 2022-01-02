@@ -1776,7 +1776,7 @@ void quicklistRotate(quicklist *quicklist) {
  *
  * 返回1的情况，需要检查data和sval字段：
  * 如果是string类型，结果保存在data指针中，单独保存在sz中(data是通过函数指针saver获得，函数以entry的返回作为参数)
- * 如果是整形，结果保存在sval中
+ * 如果是整型，结果保存在sval中
  */
 int quicklistPopCustom(quicklist *quicklist, int where, unsigned char **data,
                        unsigned int *sz, long long *sval,
@@ -1854,7 +1854,7 @@ REDIS_STATIC void *_quicklistSaver(unsigned char *data, unsigned int sz) {
 
 /* 用于将头部或尾部元素弹出
  *
- * data和sz用于存储ziplist中的字符串数据，slong用于存储整形数据
+ * data和sz用于存储ziplist中的字符串数据，slong用于存储整型数据
  *
  * 返回值：
  * 0 —— pop失败
@@ -1876,7 +1876,7 @@ int quicklistPop(quicklist *quicklist, int where, unsigned char **data,
     // 字符串
     if (data)
         *data = vstr;
-    // 整形
+    // 整型
     if (slong)
         *slong = vlong;
     if (sz)
