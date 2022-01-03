@@ -34,8 +34,12 @@
 /* Every stream item inside the listpack, has a flags field that is used to
  * mark the entry as deleted, or having the same field as the "master"
  * entry at the start of the listpack> */
+/* 每个listpack中的stream元素，都有flags域，用于标记该entry */
+// 无特殊标识
 #define STREAM_ITEM_FLAG_NONE 0             /* No special flags. */
+// 该消息已被删除
 #define STREAM_ITEM_FLAG_DELETED (1<<0)     /* Entry is deleted. Skip it. */
+// 该消息的field域与master entry完全相同
 #define STREAM_ITEM_FLAG_SAMEFIELDS (1<<1)  /* Same fields as master entry. */
 
 /* For stream commands that require multiple IDs

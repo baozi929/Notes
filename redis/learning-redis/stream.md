@@ -23,7 +23,7 @@
   + listpack
   + Rax树
 + 代码
-  + stream.h
+  + stream.h、t_stream.c
   + listpack.c、listpack.h、listpack_malloc.h
   + rax.h、rax.c、rax_malloc.h
   
@@ -227,4 +227,214 @@
     + stack：记录从根节点到当前节点的路径，用于raxNode的向上遍历
 
     + node_cb：节点的callback函数，通常为NULL
+
+## Stream结构
+
++ 介绍：
+
+  + 由下图可见，每个消息流包含一个Rax结构。
+
++ 图示
+
+  + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/stream_stream_structure.png" width="600"/>
+  + 说明：
+    + Redis Stream的实现依赖于Rax结构以及listpack结构。以消息ID为key，listpack结构为value存储在Rax结构中
+    + 每个消息的具体信息存储在listpack中
+      + 每个listpack都有一个master entry，该结构中存储了创建listpack时待插入消息的所有field。原因：同一个消息流，消息内容通常有相似性，如果后续消息的field与master entry内容相同，则不需要存储其field
+      + 每个listpack中可能存储多条信息
+
++ 消息存储
+
+  + 消息ID，128位
+
+    + ```
+      typedef struct streamID {
+          uint64_t ms;        /* Unix time in milliseconds. */
+          uint64_t seq;       /* Sequence number. */
+      } streamID;
+      ```
+
+  + 消息存储的格式
+
+    + 介绍：
+
+      + stream的消息内容存储在listpack中，listpack可用于存储字符串或整型数据
+      + listpack中的单个元素称为entry，**消息存储格式的每一个字段都是一个entry，并不是将整个消息作为字符串存储的**
+      + 每个listpack会存储多个消息，存储消息个数由stream-node-max-bytes（listpack节点最大占用的内存数）和stream-node-max-entries（每个listpack最大存储的元素个数）决定
+      + 每个消息会占用多个listpack entry
+      + 每个listpack会存储多个消息
+      + 每个listpack在创建时，会构造该节点的master entry（根据第一个插入的消息构建）
+
+    + listpack master entry结构
+
+      + | count | deleted | num-fields | field-1 | field-2 | ...  | field-N | 0    |
+        | ----- | ------- | ---------- | ------- | ------- | ---- | ------- | ---- |
+
+      + 说明：
+
+        + count：当前listpack中所有未删除的消息个数
+        + deleted：当前listpack中所有已删除的消息个数
+        + num-fields：field的个数
+        + field-1,...,field-N：当前listpack中第一个插入的消息的所有field
+        + 0：标志位，从后向前遍历该listpack所有消息时使用
+
+      + 注意：
+
+        + **此处的字段（如count、deleted等）都是listpack的一个元素**，此处省略了listpack每个元素存储式的encoding以及backlen字段
+
+        + 存储一个消息时，如果**该消息的field与master entry的field完全相同**，则不需要再次存储field，此时存储的消息：
+
+          + | flags | streamID.ms | streamID.seq | value-1 | ...  | value-N | Ip-count |
+            | ----- | ----------- | ------------ | ------- | ---- | ------- | -------- |
+
+          + 说明：
+
+            + flags：消息标志位
+              + STREAM_ITEM_FLAG_NONE：无特殊标识
+              + STREAM_ITEM_FLAG_DELETED：该消息已被删除
+              + STREAM_ITEM_FLAG_SAMEFIELDS：该消息的field与master entry完全相同
+            + streamID.ms和streamID.seq：消息ID减去master entry id之后的值
+            + value：存储了该消息每个field对应的内容
+            + Ip-count：该消息占用listpack的元素个数，即3+N
+
+        + 消息的field与master entry的field不完全相同时的消息存储：
+
+          + | flags | streamID.ms | streamID.seq | num-fields | field-1 | value-1 | ...  | field-N | value-N | Ip-count |
+            | ----- | ----------- | ------------ | ---------- | ------- | ------- | ---- | ------- | ------- | -------- |
+
+          + 说明：
+
+            + flags、streamID.ms、streamID.seq和之前一样
+            + num-fields：该消息field的个数
+            + field-value：存储消息的域-值对，即消息的具体内容
+            + Ipcount：该消息占用的listpack的元素个数，即4+2N
+
++ 关键结构体介绍
+
+  + stream
+
+    + ```
+      typedef struct stream {
+          rax *rax;               /* The radix tree holding the stream. */
+          uint64_t length;        /* Number of elements inside this stream. */
+          streamID last_id;       /* Zero if there are yet no items. */
+          rax *cgroups;           /* Consumer groups dictionary: name -> streamCG */
+      } stream;
+      ```
+
+    + 说明：
+
+      + rax：持有stream的rax树。rax树**存储消息生产者生产的具体消息**，每个消息有唯一的ID
+        + key：消息ID
+        + value：消息内容
+        + 注意：rax树中的一个节点可能存储多个消息
+      + length：当前stream中的**消息个数**（不包括已经删除的消息）
+      + last_id：当前stream中**最后插入的消息的ID**，stream为空时，设置为0
+      + cgroups：当前stream相关的消费组，存储在rax树中
+        + key：消费组的组名
+        + value：streamCG为值
+
+  + 消费组
+
+    + 每个stream有多个消费组，每个消费组通过组名唯一标识，同时关联一个streamCG结构
+
+    + ```
+      typedef struct streamCG {
+          streamID last_id;
+          rax *pel;
+          rax *consumers;
+      } streamCG;
+      ```
+
+    + 说明：
+
+      + last_id：该消费组已确认的最后一个消息的ID
+      + pel：该消费组尚未确认的消息
+        + key：消息ID
+        + value：streamNACK（代表一个尚未确认的消息）
+      + consumers：该消费组中所有的消费者
+        + key：消费者的名称为
+        + value：streamConsumer（代表一个消费者）
+
+  + 消费者
+
+    + 每个消费者通过streamConsumer唯一标识
+
+    + ```
+      typedef struct streamConsumer {
+          mstime_t seen_time;
+          sds name;
+          rax *pel;
+      } streamConsumer;
+      ```
+      
+    + 说明：
+      
+      + seen_time：该消费者最后一次活跃的时间
+      + name：消费者的名称
+      + pel：该消费者尚未确认的消息
+        + key：消息ID
+        + value：streamNACK
+
+  + 未确认消息
+
+    + 维护消费组或消费者尚未确认的消息
+
+      + 注意：消费组的pel中的元素与每个消费者的pel中的元素是**共享**的，即该消费组消费了某个消息，这个消息会同时放到消费组以及该消费者的pel队列中，并且二者是同一个streamNACK结构
+
+    + ```
+      typedef struct streamNACK {
+          mstime_t delivery_time;
+          uint64_t delivery_count;
+          streamConsumer *consumer;
+      } streamNACK;
+      ```
+
+    + 说明：
+
+      + delivery_time：该消息最后发送给消费方的时间
+      + delivery_count：该消息已经发送的次数（组内的成员可以通过xclaim命令获取某个消息的处理权，该消息已经分给组内另一个消费者但其没有确认该消息）
+      + consumer：该消息当前归属的消费者
+
+  + 迭代器
+
+    + ```
+      typedef struct streamIterator {
+          stream *stream;
+          streamID master_id;
+          uint64_t master_fields_count;
+          unsigned char *master_fields_start;
+          unsigned char *master_fields_ptr;
+          int entry_flags;
+          int rev;
+          uint64_t start_key[2];
+          uint64_t end_key[2];
+          raxIterator ri;
+          unsigned char *lp;
+          unsigned char *lp_ele;
+          unsigned char *lp_flags;
+          unsigned char field_buf[LP_INTBUF_SIZE];
+          unsigned char value_buf[LP_INTBUF_SIZE];
+      } streamIterator;
+      ```
+
+    + 说明：
+
+      + stream：当前迭代器正在遍历的消息流
+      + master entry相关（即根据listpack第一个插入的消息构建的entry）：
+        + master_id：消息id
+        + master_fields_count：master entry中field的个数
+        + master_fields_start：master entry field在listpack中的首地址
+        + master_fields_ptr： 当listpack中消息的field与master entry的field完全相同时，需要记录当前所在的field的具体位置。master_fields_ptr就是实现这个功能的
+      + entry_flags：当前遍历的消息的标志位
+      + rev：迭代器方向，True表示从尾->头
+      + start_key、end_key：该迭代器处理的消息ID的范围（128bits，大端）
+      + ri： rax迭代器，用于遍历rax中的所有key
+      + listpack相关指针：
+        + lp：指向当前listpack的指针
+        + lp_ele：指向当前listpack中正在遍历的元素
+        + lp_flags：指向当前消息的flags
+      + 从listpack中读取数据时用的缓存：
+        + field_buf
+        + value_buf
 
