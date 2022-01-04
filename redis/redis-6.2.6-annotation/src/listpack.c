@@ -124,6 +124,8 @@
  * that this element is valid, so it can be freely used.
  * Generally functions such lpNext and lpDelete assume the input pointer is
  * already validated (since it's the return value of another function). */
+
+/* 保证p在listpack之内 */
 #define ASSERT_INTEGRITY(lp, p) do { \
     assert((p) >= (lp)+LP_HDR_SIZE && (p) < (lp)+lpGetTotalBytes((lp))); \
 } while (0)
@@ -334,16 +336,24 @@ int lpEncodeGetType(unsigned char *ele, uint32_t size, unsigned char *intenc, ui
  * The function returns the number of bytes used to encode it, from
  * 1 to 5. If 'buf' is NULL the function just returns the number of bytes
  * needed in order to encode the backlen. */
+/* 根据encoding+content的字节数，计算backlen的长度
+ *
+ * buf中存储一个反向编码的可变长度字段，表示大小为l的前一个元素的长度
+ * 如果buf==NULL，只返回backlen所需字节数
+ */
 unsigned long lpEncodeBacklen(unsigned char *buf, uint64_t l) {
+    // encoding+content的总长度小于2^7，backlen长度为1字节
     if (l <= 127) {
         if (buf) buf[0] = l;
         return 1;
+    // encoding+content的总长度小于2^14，backlen长度为2字节
     } else if (l < 16383) {
         if (buf) {
             buf[0] = l>>7;
             buf[1] = (l&127)|128;
         }
         return 2;
+    // encoding+content的总长度小于2^21，backlen长度为3字节
     } else if (l < 2097151) {
         if (buf) {
             buf[0] = l>>14;
@@ -351,6 +361,7 @@ unsigned long lpEncodeBacklen(unsigned char *buf, uint64_t l) {
             buf[2] = (l&127)|128;
         }
         return 3;
+    // encoding+content的总长度小于2^28，backlen长度为4字节
     } else if (l < 268435455) {
         if (buf) {
             buf[0] = l>>21;
@@ -359,6 +370,7 @@ unsigned long lpEncodeBacklen(unsigned char *buf, uint64_t l) {
             buf[3] = (l&127)|128;
         }
         return 4;
+    // 其他情况，backlen长度为5字节
     } else {
         if (buf) {
             buf[0] = l>>28;
@@ -373,11 +385,18 @@ unsigned long lpEncodeBacklen(unsigned char *buf, uint64_t l) {
 
 /* Decode the backlen and returns it. If the encoding looks invalid (more than
  * 5 bytes are used), UINT64_MAX is returned to report the problem. */
+
+/* 解码backlen并返回
+ * 
+ * 如果encoding不合法（大于5位），返回UINT64_MAX
+ */
 uint64_t lpDecodeBacklen(unsigned char *p) {
     uint64_t val = 0;
     uint64_t shift = 0;
     do {
+        // 当前字节的后7位表示长度
         val |= (uint64_t)(p[0] & 127) << shift;
+        // 当前字节的最高位为1，表示尚未结束；0表示结束
         if (!(p[0] & 128)) break;
         shift += 7;
         p--;
@@ -415,6 +434,8 @@ void lpEncodeString(unsigned char *buf, unsigned char *s, uint32_t len) {
  * str), so should only be called when we know 'p' was already validated by
  * lpCurrentEncodedSizeBytes or ASSERT_INTEGRITY_LEN (possibly since 'p' is
  * a return value of another function that validated its return. */
+
+/* 获取listpack中encoding+content占用的字节数 */
 uint32_t lpCurrentEncodedSizeUnsafe(unsigned char *p) {
     if (LP_ENCODING_IS_7BIT_UINT(p[0])) return 1;
     if (LP_ENCODING_IS_6BIT_STR(p[0])) return 1+LP_ENCODING_6BIT_STR_LEN(p);
@@ -430,9 +451,14 @@ uint32_t lpCurrentEncodedSizeUnsafe(unsigned char *p) {
 }
 
 /* Return bytes needed to encode the length of the listpack element pointed by 'p'.
- * This includes just the encodign byte, and the bytes needed to encode the length
+ * This includes just the encoding byte, and the bytes needed to encode the length
  * of the element (excluding the element data itself)
  * If the element encoding is wrong then 0 is returned. */
+
+/* 返回编码p指向的listpack中的元素需要的字节数(只包含encoding)
+ *
+ * 返回0——说明编码不合法
+ */
 uint32_t lpCurrentEncodedSizeBytes(unsigned char *p) {
     if (LP_ENCODING_IS_7BIT_UINT(p[0])) return 1;
     if (LP_ENCODING_IS_6BIT_STR(p[0])) return 1;
@@ -451,9 +477,14 @@ uint32_t lpCurrentEncodedSizeBytes(unsigned char *p) {
  * function if the current element is the EOF element at the end of the
  * listpack, however, while this function is used to implement lpNext(),
  * it does not return NULL when the EOF element is encountered. */
+
+/* lpNext的辅助函数 */
 unsigned char *lpSkip(unsigned char *p) {
+    // 获取p指向entry对应的encoding和content占用的字节数
     unsigned long entrylen = lpCurrentEncodedSizeUnsafe(p);
+    // 根据encoding+content的长度求backlen的长度
     entrylen += lpEncodeBacklen(NULL,entrylen);
+    // 获取下一个entry的地址（p+encoding+content+backlen）
     p += entrylen;
     return p;
 }
@@ -461,10 +492,17 @@ unsigned char *lpSkip(unsigned char *p) {
 /* If 'p' points to an element of the listpack, calling lpNext() will return
  * the pointer to the next element (the one on the right), or NULL if 'p'
  * already pointed to the last element of the listpack. */
+
+/* 如果p指向listpack的一个元素，则lpNext()返回指向下一个（右边）元素的指针
+ * 如果p已经指向listpack的最后一个元素，返回NULL
+ */
 unsigned char *lpNext(unsigned char *lp, unsigned char *p) {
     assert(p);
+    // 获取下一个entry的地址
     p = lpSkip(p);
+    // 指向LP_EOF，说明是最后一个元素，返回NULL
     if (p[0] == LP_EOF) return NULL;
+    // 验证entry合法
     lpAssertValidEntry(lp, lpBytes(lp), p);
     return p;
 }
@@ -684,13 +722,17 @@ unsigned char *lpInsert(unsigned char *lp, unsigned char *ele, uint32_t size, un
     /* An element pointer set to NULL means deletion, which is conceptually
      * replacing the element with a zero-length element. So whatever we
      * get passed as 'where', set it to LP_REPLACE. */
+    // ele == NULL表示删除p位置的数据，因此where设置为LP_REPLACE
     if (ele == NULL) where = LP_REPLACE;
 
     /* If we need to insert after the current element, we just jump to the
      * next element (that could be the EOF one) and handle the case of
      * inserting before. So the function will actually deal with just two
      * cases: LP_BEFORE and LP_REPLACE. */
+    // 为了统一处理LP_AFTER和LP_BEFORE
+    // LP_AFTER（在p之后插入）转化为在p的下一个entry之前插入
     if (where == LP_AFTER) {
+        // 获取下一个entry地址
         p = lpSkip(p);
         where = LP_BEFORE;
         ASSERT_INTEGRITY(lp, p);
@@ -834,6 +876,8 @@ unsigned char *lpDelete(unsigned char *lp, unsigned char *p, unsigned char **new
 }
 
 /* Return the total number of bytes the listpack is composed of. */
+
+/* 返回listpack总共占用的字节数 */
 uint32_t lpBytes(unsigned char *lp) {
     return lpGetTotalBytes(lp);
 }
@@ -897,25 +941,38 @@ unsigned char *lpValidateFirst(unsigned char *lp) {
 /* Validate the integrity of a single listpack entry and move to the next one.
  * The input argument 'pp' is a reference to the current record and is advanced on exit.
  * Returns 1 if valid, 0 if invalid. */
+
+/* 验证一个listpack entry的完整性，并移动至下一个元素
+ *
+ * lp指向listpack，pp为当前记录的引用，lpbytes为listpack占用的字节数
+ *
+ * 返回：1——合法；0——不合法
+ */
 int lpValidateNext(unsigned char *lp, unsigned char **pp, size_t lpbytes) {
+// 判断p是否在entry的范围内（排除Total Bytes、Num Elem、END）
 #define OUT_OF_RANGE(p) ( \
         (p) < lp + LP_HDR_SIZE || \
         (p) > lp + lpbytes - 1)
     unsigned char *p = *pp;
+    // p为空指针，不合法，返回0
     if (!p)
         return 0;
 
     /* Before accessing p, make sure it's valid. */
+    // p不在合法地址范围内，返回0
     if (OUT_OF_RANGE(p))
         return 0;
 
+    // *p为结束标识LP_EOF
     if (*p == LP_EOF) {
         *pp = NULL;
         return 1;
     }
 
     /* check that we can read the encoded size */
+    // 计算encoding需要的字节数
     uint32_t lenbytes = lpCurrentEncodedSizeBytes(p);
+    // 为0，说明编码不合法
     if (!lenbytes)
         return 0;
 
@@ -924,6 +981,7 @@ int lpValidateNext(unsigned char *lp, unsigned char **pp, size_t lpbytes) {
         return 0;
 
     /* get the entry length and encoded backlen. */
+    // 获取entry的长度（encoding+content+backlen）
     unsigned long entrylen = lpCurrentEncodedSizeUnsafe(p);
     unsigned long encodedBacklen = lpEncodeBacklen(NULL,entrylen);
     entrylen += encodedBacklen;
@@ -933,19 +991,25 @@ int lpValidateNext(unsigned char *lp, unsigned char **pp, size_t lpbytes) {
         return 0;
 
     /* move to the next entry */
+    // 移动至下一个entry
     p += entrylen;
 
     /* make sure the encoded length at the end patches the one at the beginning. */
+    // 获取前一个元素的长度（即一开始指向的entry）
     uint64_t prevlen = lpDecodeBacklen(p-1);
+    // backlen中的信息和encoding能对上
     if (prevlen + encodedBacklen != entrylen)
         return 0;
 
+    // 将获得的下一个entry地址返回到pp
     *pp = p;
     return 1;
 #undef OUT_OF_RANGE
 }
 
 /* Validate that the entry doesn't reach outside the listpack allocation. */
+
+/* 验证没有超过listpack分配的内存范围之外 */
 static inline void lpAssertValidEntry(unsigned char* lp, size_t lpbytes, unsigned char *p) {
     assert(lpValidateNext(lp, &p, lpbytes));
 }
