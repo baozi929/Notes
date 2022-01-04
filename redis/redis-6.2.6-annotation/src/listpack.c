@@ -104,6 +104,8 @@
 
 #define lpGetNumElements(p)          (((uint32_t)(p)[4]<<0) | \
                                       ((uint32_t)(p)[5]<<8))
+
+/* p为listpack指针，将TotalBytes v设到p的前4个字节 */
 #define lpSetTotalBytes(p,v) do { \
     (p)[0] = (v)&0xff; \
     (p)[1] = ((v)>>8)&0xff; \
@@ -111,6 +113,7 @@
     (p)[3] = ((v)>>24)&0xff; \
 } while(0)
 
+/* p为listpack指针，将NumElements v设到p的第5、6个字节 */
 #define lpSetNumElements(p,v) do { \
     (p)[4] = (v)&0xff; \
     (p)[5] = ((v)>>8)&0xff; \
@@ -225,9 +228,15 @@ int lpStringToInt64(const char *s, unsigned long slen, int64_t *value) {
  * Pre-allocate at least `capacity` bytes of memory,
  * over-allocated memory can be shrinked by `lpShrinkToFit`.
  * */
+/* 初始化listpack */
 unsigned char *lpNew(size_t capacity) {
+    // LP_HDR_SIZE + 1 = 6 + 1 = 7 字节
+    // Total Bytes：4字节 + Num Elem：2字节 + End：1字节
+    // 申请空间
     unsigned char *lp = lp_malloc(capacity > LP_HDR_SIZE+1 ? capacity : LP_HDR_SIZE+1);
+    // 内存分配失败
     if (lp == NULL) return NULL;
+    // 初始化：Total Bytes、Num Elem、End
     lpSetTotalBytes(lp,LP_HDR_SIZE+1);
     lpSetNumElements(lp,0);
     lp[LP_HDR_SIZE] = LP_EOF;
@@ -652,6 +661,20 @@ unsigned char *lpGet(unsigned char *p, int64_t *count, unsigned char *intbuf) {
  * For deletion operations ('ele' set to NULL) 'newp' is set to the next
  * element, on the right of the deleted one, or to NULL if the deleted element
  * was the last one. */
+
+/* 在指针p指向的位置增/删/改的长度为len的元素ele
+ * 指针p为指向listpack元素的指针，通过lpFirst()、lpLast()、lpNext()、lpPrev()或lpSeek()获取地址
+ *
+ * 参数where表示元素是在p之前插入，在p之后插入或替换p（LP_BEFORE、LP_AFTER、LP_REPLACE）
+ *
+ * 如果ele设为空，则函数删除p指向的元素
+ * 
+ * newp：新插入指针后，newp为该元素的指针地址；删除操作后，newp指向下一个元素（或NULL，若删除的是最后一个元素）
+ *
+ * 返回：
+ * NULL —— OOM或listpack长度超过最大允许的大小2^32-1
+ * 指向listpack新元素的指针 —— 其他情况
+ */
 unsigned char *lpInsert(unsigned char *lp, unsigned char *ele, uint32_t size, unsigned char *p, int where, unsigned char **newp) {
     unsigned char intenc[LP_MAX_INT_ENCODING_LEN];
     unsigned char backlen[LP_MAX_BACKLEN_SIZE];
