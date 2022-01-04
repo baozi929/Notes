@@ -26,7 +26,6 @@
   + stream.h、t_stream.c
   + listpack.c、listpack.h、listpack_malloc.h
   + rax.h、rax.c、rax_malloc.h
-  
 
 ## listpack
 
@@ -91,6 +90,7 @@
 ## Rax树
 
 + 介绍
+
   + 前缀树是字符串查找时常用的数据结构，能在字符串集合中快速查找到某个字符串。但由于每个节点只存储字符串中的一个字符，有时会造成空间的浪费
   + Rax的出现就是为了解决这个问题。它不仅可以存储字符串，还可以为字符串设置一个值，即key-value对
   + Rax树通过节点压缩节省时间
@@ -367,9 +367,9 @@
           rax *pel;
       } streamConsumer;
       ```
-      
+
     + 说明：
-      
+
       + seen_time：该消费者最后一次活跃的时间
       + name：消费者的名称
       + pel：该消费者尚未确认的消息
@@ -438,3 +438,28 @@
         + field_buf
         + value_buf
 
+
+
+## Listpack的实现
+
++ 初始化
+
+  + ```
+    unsigned char *lpNew(size_t capacity) {
+        unsigned char *lp = lp_malloc(capacity > LP_HDR_SIZE+1 ? capacity : LP_HDR_SIZE+1);
+        if (lp == NULL) return NULL;
+        lpSetTotalBytes(lp,LP_HDR_SIZE+1);
+        lpSetNumElements(lp,0);
+        lp[LP_HDR_SIZE] = LP_EOF;
+        return lp;
+    }
+    ```
+
+  + 说明：
+
+    + 默认分配7个字节，包含：Total Bytes（4字节） + Num Elem（2字节） + End（1字节）
+    + 初始化Total Bytes、Num Elem、End
+
++ 增删改
+
+  + 添加元素
