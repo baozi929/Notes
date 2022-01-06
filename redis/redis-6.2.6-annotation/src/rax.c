@@ -185,12 +185,22 @@ static inline void raxStackFree(raxStack *ts) {
  * If datafiled is true, the allocation is made large enough to hold the
  * associated data pointer.
  * Returns the new node pointer. On out of memory NULL is returned. */
+
+/* 构造一个给定数量子节点的非压缩节点
+ * 如果datafield == true，则需要分配空间用于存放关联数据的指针
+ *
+ * 返回值：新指针；或者返回NULL(OOM的情况)
+ */
 raxNode *raxNewNode(size_t children, int datafield) {
+    // 计算节点大小
     size_t nodesize = sizeof(raxNode)+children+raxPadding(children)+
                       sizeof(raxNode*)*children;
+    // datafield == true时，需额外加入一个指针的大小
     if (datafield) nodesize += sizeof(void*);
+    // 分配空间
     raxNode *node = rax_malloc(nodesize);
     if (node == NULL) return NULL;
+    // 初始化成员变量
     node->iskey = 0;
     node->isnull = 0;
     node->iscompr = 0;
@@ -200,12 +210,21 @@ raxNode *raxNewNode(size_t children, int datafield) {
 
 /* Allocate a new rax and return its pointer. On out of memory the function
  * returns NULL. */
+
+/* Rax初始化并返回指向rax的指针，OOM返回NULL */
 rax *raxNew(void) {
+    // 申请空间
     rax *rax = rax_malloc(sizeof(*rax));
+    // 申请失败，返回NULL
     if (rax == NULL) return NULL;
+    // 初始化成员变量
+    // numele：元素数量（key的个数）
+    // numnodes：节点数量
     rax->numele = 0;
     rax->numnodes = 1;
+    // 构造头结点
     rax->head = raxNewNode(0,0);
+    // 头结点构造失败（OOM）,释放rax并返回NULL
     if (rax->head == NULL) {
         rax_free(rax);
         return NULL;
