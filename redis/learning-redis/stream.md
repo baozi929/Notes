@@ -446,7 +446,7 @@
 
   + 在Stream中用于存储消息内容
   + 特点：查询效率低，只适合末尾增删（但消息队列通常只需要在末尾添加消息，所以可以使用该结构）
-  
+
 + 初始化
 
   + ```
@@ -464,7 +464,7 @@
 
     + 默认分配7个字节，包含：Total Bytes（4字节） + Num Elem（2字节） + End（1字节）
     + 初始化Total Bytes、Num Elem、End
-    
+
   + 图示
 
     + | Total Bytes = 7 | Num = 0 | End  |
@@ -473,13 +473,13 @@
 + 增删改
 
   + 增删改查都是基于lpInsert函数实现
-  
+
   + ```
     unsigned char *lpInsert(unsigned char *lp, unsigned char *ele, uint32_t size, unsigned char *p, int where, unsigned char **newp)
     ```
-  
+
   + 说明：
-  
+
     + lp：当前listpack
     + ele：待插入的新元素或待替换的新元素；如果ele为空，说明需要删除
     + size：ele的长度
@@ -488,16 +488,16 @@
       + LP_AFTER可以转换为LP_BEFORE（p指向下一个元素即可）
       + ele为空可以转换为LP_REPLACE
     + newp：用于返回插入/替换的新元素或删除元素的下一个元素；如果指向LP_EOF（删除最后一个元素时，会出现这种情况），则返回NULL
-  
+
   + 函数流程：
-  
+
     + 计算新元素需要的空间
     + 计算插入/替换后整个listpack所需空间，如果需要更过空间，通过realloc申请空间
     + 调整listpack中老元素的位置，为新元素预留空间
     + realloc以释放多余空间
     + 在新的listpack中进行插入或替换操作
     + 更新新的listpack的header（占用字节数Total Bytes和元素数量Num）
-  
+
 + 遍历操作
 
   + ````
@@ -513,5 +513,42 @@
 
 + 读取元素
 
-  + 
+  + ```
+    unsigned char *lpGet(unsigned char *p, int64_t *count, unsigned char *intbuf);
+    ```
 
+  + 说明：
+
+    + 元素用字符串编码时，返回字符串第一个字符的位置，count为字符串长度
+    + 元素采用整型编码时
+       + 若intbuf不为空，则将整型数据转换为字符串存储在intbuf中，count为字符串长度，返回intbuf
+       + 若intbuf为空，直接将数据存储在count中，返回NULL
+
+## Rax的实现
+
++ 介绍：
+
+  + Stream的消息存储在listpack中，但你如果所有消息都存储在一个listpack中，存在效率问题。例子：
+    + 查询某个消息，需要遍历整个listpack
+    + 插入消息，需要重新申请很大的空间
+  + Redis引入Rax用于组织这些listpack，以解决上述问题
+
++ 初始化：
+
+  + ```
+    rax *raxNew(void) {
+        rax *rax = rax_malloc(sizeof(*rax));
+        if (rax == NULL) return NULL;
+        rax->numele = 0;
+        rax->numnodes = 1;
+        rax->head = raxNewNode(0,0);
+        if (rax->head == NULL) {
+            rax_free(rax);
+            return NULL;
+        } else {
+            return rax;
+        }
+    }
+    ```
+
+  + 
