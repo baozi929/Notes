@@ -91,7 +91,10 @@ void raxSetDebugMsg(int onoff) {
  * ------------------------------------------------------------------------- */
 
 /* Initialize the stack. */
+
+/* 初始化raxStack */
 static inline void raxStackInit(raxStack *ts) {
+    // 初始使用数组，长度为RAX_STACK_STATIC_ITEMS
     ts->stack = ts->static_items;
     ts->items = 0;
     ts->maxitems = RAX_STACK_STATIC_ITEMS;
@@ -99,35 +102,56 @@ static inline void raxStackInit(raxStack *ts) {
 }
 
 /* Push an item into the stack, returns 1 on success, 0 on out of memory. */
+
+/* 将一个元素放入raxStack，成功返回1，OOM返回0 */
 static inline int raxStackPush(raxStack *ts, void *ptr) {
+    // raxStack的已用空间==最大空间
     if (ts->items == ts->maxitems) {
+        // stack指向static_items数组
         if (ts->stack == ts->static_items) {
+            // 分配堆空间
             ts->stack = rax_malloc(sizeof(void*)*ts->maxitems*2);
+            // 分配失败
             if (ts->stack == NULL) {
+                // 重新指向static_items
                 ts->stack = ts->static_items;
+                // 标记出现过oom
                 ts->oom = 1;
                 errno = ENOMEM;
                 return 0;
             }
+            // 分配成功，将原static_items数组的内容拷贝到新分配的堆上空间
             memcpy(ts->stack,ts->static_items,sizeof(void*)*ts->maxitems);
+        // stack不指向static_items数组，即使用堆空间
         } else {
+            // 重新分配堆上空间（ralloc，所以不需要额外的copy操作）
             void **newalloc = rax_realloc(ts->stack,sizeof(void*)*ts->maxitems*2);
+            // 分配失败，标记OOM，返回0
             if (newalloc == NULL) {
                 ts->oom = 1;
                 errno = ENOMEM;
                 return 0;
             }
+            // 分配成功
             ts->stack = newalloc;
         }
+        // 两种情况都尝试分配2倍空间，因此如果走到这里说明成功分配了2倍空间
+        // 因此最大可用空间*2
         ts->maxitems *= 2;
     }
+    // 将元素ptr插入raxStack
     ts->stack[ts->items] = ptr;
+    // 更新已使用空间
     ts->items++;
     return 1;
 }
 
 /* Pop an item from the stack, the function returns NULL if there are no
  * items to pop. */
+
+/* pop raxStack中最后插入的元素
+ * 如果没有元素，返回NULL
+ */
 static inline void *raxStackPop(raxStack *ts) {
     if (ts->items == 0) return NULL;
     ts->items--;
@@ -136,12 +160,18 @@ static inline void *raxStackPop(raxStack *ts) {
 
 /* Return the stack item at the top of the stack without actually consuming
  * it. */
+
+/* 返回raxStack中的栈顶元素
+ * 没有元素，返回NULL
+ */
 static inline void *raxStackPeek(raxStack *ts) {
     if (ts->items == 0) return NULL;
     return ts->stack[ts->items-1];
 }
 
 /* Free the stack in case we used heap allocation. */
+
+/* 在使用堆上空间的情况下，释放raxStack */
 static inline void raxStackFree(raxStack *ts) {
     if (ts->stack != ts->static_items) rax_free(ts->stack);
 }
@@ -154,6 +184,13 @@ static inline void raxStackFree(raxStack *ts) {
  * 'nodesize'. The padding is needed to store the child pointers to aligned
  * addresses. Note that we add 4 to the node size because the node has a four
  * bytes header. */
+
+/* 返回一个大小为nodesize的节点的characters部分需要的padding
+ *
+ * 用于手动对齐内存
+ *
+ * 此处+4是因为有4字节的header
+ */
 #define raxPadding(nodesize) ((sizeof(void*)-((nodesize+4) % sizeof(void*))) & (sizeof(void*)-1))
 
 /* Return the pointer to the last child pointer in a node. For the compressed
@@ -166,6 +203,8 @@ static inline void raxStackFree(raxStack *ts) {
 ))
 
 /* Return the pointer to the first child pointer. */
+
+/* 返回指向第一个子节点的指针 */
 #define raxNodeFirstChildPtr(n) ((raxNode**) ( \
     (n)->data + \
     (n)->size + \
@@ -475,35 +514,69 @@ raxNode *raxCompressNode(raxNode *n, unsigned char *s, size_t len, raxNode **chi
  * means that the current node represents the key (that is, none of the
  * compressed node characters are needed to represent the key, just all
  * its parents nodes). */
+
+// 回头画个图研究一下！！！！
+/* 查找key的核心函数，在raxFind等函数中用到
+ * 
+ * 函数作用：遍历Rax树以查找长度为len字节的字符串s
+ * 
+ * 函数返回：
+ * 函数可以处理的键的字符数，如果返回的整数与len相同，说明找到了对应于字符串的节点；
+ * 否则，如果返回的整数与len不同，则在树的遍历期间由于字符不匹配而提前停止
+ *
+ * rax：待查找的Rax树
+ * s：待查找的key
+ * len：key的长度
+ * *stopnode：查找过程中的终止节点，通过引用传递返回。当rax查找到该节点时，待查找的key已经匹配完成，或者当前节点无法与带查找的key匹配
+ * *plink：记录父节点中指向*stopnode的指针的位置。当*stopnode变化时，需要修改父节点指向该节点的指针
+ * *splitpos：记录压缩节点的匹配位置
+ * ts：ts不为空时，将查找该key的路径写入该变量
+ */
 static inline size_t raxLowWalk(rax *rax, unsigned char *s, size_t len, raxNode **stopnode, raxNode ***plink, int *splitpos, raxStack *ts) {
+    // 从根节点开始匹配
     raxNode *h = rax->head;
     raxNode **parentlink = &rax->head;
 
+    // 当前待匹配字符在字符串中的位置
     size_t i = 0; /* Position in the string. */
+    // 当前匹配的节点的位置（如果是压缩节点则为字节数）
     size_t j = 0; /* Position in the node children (or bytes if compressed).*/
+
+    // 当前节点有子节点，且尚未走到s字符串的末尾
     while(h->size && i < len) {
         debugnode("Lookup current node",h);
         unsigned char *v = h->data;
 
+        // 压缩节点
         if (h->iscompr) {
+            // 压缩节点是否能够完全匹配字符串
             for (j = 0; j < h->size && i < len; j++, i++) {
                 if (v[j] != s[i]) break;
             }
+            // 当前压缩节点不能完全匹配，或s已到达末尾
             if (j != h->size) break;
+        // 非压缩节点
         } else {
             /* Even when h->size is large, linear scan provides good
              * performances compared to other approaches that are in theory
              * more sounding, like performing a binary search. */
+            // 非压缩节点遍历节点元素，查找与当前字符匹配的位置
             for (j = 0; j < h->size; j++) {
                 if (v[j] == s[i]) break;
             }
+            // 未在非压缩节点找到匹配的字符
             if (j == h->size) break;
+            // 非压缩节点可以匹配，移动到s的下一个字符
             i++;
         }
 
+        // 当前节点能够匹配s，把父节点保存到raxStack中
         if (ts) raxStackPush(ts,h); /* Save stack of parent nodes. */
+        // 获得当前raxNode的第一个子节点
         raxNode **children = raxNodeFirstChildPtr(h);
+        // 如果当前节点是压缩节点，只有一个child，idx==0
         if (h->iscompr) j = 0; /* Compressed node only child is at index 0. */
+        // 将当前节点移动至其第j个子节点
         memcpy(&h,children+j,sizeof(h));
         parentlink = children+j;
         j = 0; /* If the new node is non compressed and we do not
@@ -934,6 +1007,10 @@ int raxTryInsert(rax *rax, unsigned char *s, size_t len, void *data, void **old)
 /* Find a key in the rax, returns raxNotFound special void pointer value
  * if the item was not found, otherwise the value associated with the
  * item is returned. */
+
+/* 在Rax树中查找长度为len的字符串s（s为Rax树种的一个key）
+ * 找到返回该key对应的value
+ */
 void *raxFind(rax *rax, unsigned char *s, size_t len) {
     raxNode *h;
 

@@ -158,13 +158,11 @@
           + | iskey | isnull | iscompr=0 | size=2 | X    | Y    | pad  | X-ptr | Y-ptr | value-ptr? |
             | ----- | ------ | --------- | ------ | ---- | ---- | ---- | ----- | ----- | ---------- |
 
-            
-
           + 说明：
 
             + 与压缩节点的区别：每个字符都有一个子节点。
-            + 字符个数小于2时，都是非压缩节点。
-
+      + 字符个数小于2时，都是非压缩节点。
+    
   + raxStack结构
 
     + ```
@@ -175,14 +173,14 @@
           int oom;
       } raxStack;
       ```
-
+  
     + 说明：
 
       + stack：记录路径，指针可能指向static_items（路径较短时）或堆空间内存
       + items，maxitems：stack指向的空间的已用空间以及最大空间
       + static_items：数组，数组中的每个元素都是指针，用于存储路径
       + oom：当前栈是否出现过内存溢出
-
+  
     + 作用：
 
       + 存储从根节点到当前节点的路径
@@ -203,13 +201,13 @@
           raxNodeCallback node_cb; /* Optional node callback. Normally set to NULL. */
       } raxIterator;
       ```
-
+  
     + flag：迭代器标志位，目前有以下三种：
 
       + RAX_ITER_JUST_SEEKED：表示迭代器指向的元素时刚刚搜索过的
       + RAX_ITER_EOF：表示当前迭代器已经遍历到Rax树的最后一个节点
       + RAX_ITER_SAFE：表示当前迭代器为安全迭代器
-
+  
     + rt：迭代器当前遍历的Rax树
 
     + key：迭代器当前遍历到的key，该指针指向key_static_string或者从堆中申请的内存
@@ -551,4 +549,37 @@
     }
     ```
 
-  + 
+  + 图示：
+
+    + <img src="https://github.com/baozi929/Notes/blob/main/redis/learning-redis/figures/stream_rax_initialize.png" width="600"/>
+
++ 查找元素：
+
+  + ```
+    void *raxFind(rax *rax, unsigned char *s, size_t len) {
+        raxNode *h;
+    
+        debugf("### Lookup: %.*s\n", (int)len, s);
+        int splitpos = 0;
+        size_t i = raxLowWalk(rax,s,len,&h,NULL,&splitpos,NULL);
+        if (i != len || (h->iscompr && splitpos != 0) || !h->iskey)
+            return raxNotFound;
+        return raxGetData(h);
+    }
+    ```
+
+  + 说明：
+
+    + 关键函数
+
+      + ```
+        static inline size_t raxLowWalk(rax *rax, unsigned char *s, size_t len, raxNode **stopnode, raxNode ***plink, int *splitpos, raxStack *ts);
+        ```
+
+      + 主要执行过程：
+
+        + 变量初始化
+        + 从rax根节点开始查找，直到当前待查找节点无子节点或者s查找完毕。对于其中的节点：
+          + 如果为压缩节点，需要与s中的字符完全匹配
+          + 如果为非压缩节点，则查找与当前待匹配字符相同的字符
+        + 如果当前待匹配节点能够与s匹配，则移动位置至其子节点，继续匹配
