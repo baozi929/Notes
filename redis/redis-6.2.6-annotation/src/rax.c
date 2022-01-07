@@ -195,6 +195,8 @@ static inline void raxStackFree(raxStack *ts) {
 
 /* Return the pointer to the last child pointer in a node. For the compressed
  * nodes this is the only child pointer. */
+
+/* 返回指向节点最后一个子节点的指针 */
 #define raxNodeLastChildPtr(n) ((raxNode**) ( \
     ((char*)(n)) + \
     raxNodeCurrentLength(n) - \
@@ -213,6 +215,10 @@ static inline void raxStackFree(raxStack *ts) {
 /* Return the current total size of the node. Note that the second line
  * computes the padding after the string of characters, needed in order to
  * save pointers to aligned addresses. */
+
+/* 返回当前raxNode的大小
+ * 其中第二行计算的是字符串之后的padding，这是为了后面保存的指针做内存对齐
+ */
 #define raxNodeCurrentLength(n) ( \
     sizeof(raxNode)+(n)->size+ \
     raxPadding((n)->size)+ \
@@ -274,13 +280,19 @@ rax *raxNew(void) {
 
 /* realloc the node to make room for auxiliary data in order
  * to store an item in that node. On out of memory NULL is returned. */
+
+/* realloc raxNode，扩充节点以存放一个额外的指针 */
 raxNode *raxReallocForData(raxNode *n, void *data) {
     if (data == NULL) return n; /* No reallocation needed, setting isnull=1 */
+    // 获取当前节点大小
     size_t curlen = raxNodeCurrentLength(n);
+    // realloc得到多一个指针大小的内存
     return rax_realloc(n,curlen+sizeof(void*));
 }
 
 /* Set the node auxiliary data to the specified pointer. */
+
+/* 将data指针放到raxNode中 */
 void raxSetData(raxNode *n, void *data) {
     n->iskey = 1;
     if (data != NULL) {
@@ -294,6 +306,8 @@ void raxSetData(raxNode *n, void *data) {
 }
 
 /* Get the node auxiliary data. */
+
+/* 获取raxNode的数据指针并返回 */
 void *raxGetData(raxNode *n) {
     if (n->isnull) return NULL;
     void **ndata =(void**)((char*)n+raxNodeCurrentLength(n)-sizeof(void*));
@@ -452,6 +466,10 @@ raxNode *raxAddChild(raxNode *n, unsigned char c, raxNode **childptr, raxNode **
  * The function also returns a child node, since the last node of the
  * compressed chain cannot be part of the chain: it has zero children while
  * we can only compress inner nodes with exactly one child each. */
+
+/* raxNode n变为压缩节点，n必须没有子节点
+ * 压缩后的新节点表示一串只有一个子节点的连接在一起的raxNode->最后包含一个字符串加上一个子节点的指针
+ */
 raxNode *raxCompressNode(raxNode *n, unsigned char *s, size_t len, raxNode **child) {
     assert(n->size == 0 && n->iscompr == 0);
     void *data = NULL; /* Initialized only to avoid warnings. */
@@ -460,10 +478,12 @@ raxNode *raxCompressNode(raxNode *n, unsigned char *s, size_t len, raxNode **chi
     debugf("Compress node: %.*s\n", (int)len,s);
 
     /* Allocate the child to link to this node. */
+    // 为子节点分配内存
     *child = raxNewNode(0,0);
     if (*child == NULL) return NULL;
 
     /* Make space in the parent node. */
+    // 为父节点扩展内存
     newsize = sizeof(raxNode)+len+raxPadding(len)+sizeof(raxNode*);
     if (n->iskey) {
         data = raxGetData(n); /* To restore it later. */
@@ -475,11 +495,14 @@ raxNode *raxCompressNode(raxNode *n, unsigned char *s, size_t len, raxNode **chi
         return NULL;
     }
     n = newn;
-
+    
+    // 变为压缩节点
     n->iscompr = 1;
     n->size = len;
+    // 将s拷贝至节点数据
     memcpy(n->data,s,len);
     if (n->iskey) raxSetData(n,data);
+    // 获取节点最后一个指针的位置，并将child放入该位置
     raxNode **childfield = raxNodeLastChildPtr(n);
     memcpy(childfield,child,sizeof(*child));
     return n;
