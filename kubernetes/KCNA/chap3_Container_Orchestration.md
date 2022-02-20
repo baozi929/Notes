@@ -51,19 +51,79 @@
           + managing the **dependencies of an application**
           
           + running **much more efficiently** than spinning up a lot of virtual machines
+   
+   
 
 2. Container Basics
    
-   1. Ancestors of modern container technologies
-      
-      + `chroot`:  introduced in Version 7 Unix in 1979
-        
-        + could be used to **isolate a process from the root filesystem** and basically "hide" the files from the process and **simulate a new root directory**
-        
-        + Example:
-          
-          + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/chroot.png)
-      
-      
+   + Ancestors of modern container technologies
+     
+     + `chroot`:  introduced in Version 7 Unix in 1979
+       
+       + could be used to **isolate a process from the root filesystem** and basically "hide" the files from the process and **simulate a new root directory**
+       
+       + Example:
+         
+         + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/chroot.png)
    
+   + Current ways to isolate a process
+     
+     + `namespaces`
+       
+       + used to isolate various resources
+         
+         + example: 
+           
+           + **network namespace** can be used to provide a complete abstraction of network interfaces and routing tables
+             
+             + therefore, a process will have **its own IP address**
+       
+       + Linux Kernel 5.6 currently provides 8 namespaces
+         
+         + `pid` - process ID, provides a process with its **own set of process IDs**
+         
+         + `net` - network, allows the processes to have their **own network stack**, including the IP address
+         
+         + `mnt` - mount, abstracts the **filesystem view** and manages **mount points**
+         
+         + `ipc` -  inter-process communication, provides separation of named shared memory segments
+         
+         + `user` -  provides process with their **own set of user IDs and group IDs**
+         
+         + `uts` - Unix time sharing, allows processes to have their **own hostname and domain name**
+         
+         + `cgroup` - allows a process to have its **own set of cgroup root directories**
+         
+         + `time` - can be used to **virtualize the clock of the system**
+     
+     + `cgroups`
+       
+       + used to
+         
+         + **organize processes in hierarchical groups**
+         
+         + **assign them resources** like memory and CPU
    
+   + **Virtual machines** VS **Containers**)
+     
+     + Virtual machines
+       
+       + emulate a complete machine, including the operating system and a kernel -> **overhead** (boot time, size or resource usage to run the OS)
+       
+       + security advantages: **greater isolation**
+     
+     + Containers
+       
+       + share the kernel of the host machine and are only **isolated processes** -> **faster and have a smaller footprint**
+     
+     + ![]()
+
+
+
+3. Running Containers
+   
+   + 
+
+4. 
+
+5. 
