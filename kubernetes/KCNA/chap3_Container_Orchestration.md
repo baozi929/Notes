@@ -455,17 +455,17 @@
       
       + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/ContainerLayers.png)
       
-      . Image layer:
+      + Image layer:
         
-        . read-only
+        + read-only
         
-        . consist of layers that include what you added during the build phase
+        + consist of layers that include what you added during the build phase
       
-      . read-write layer
+      + read-write layer
         
-        . **lost when the container is stopped or deleted**
+        + **lost when the container is stopped or deleted**
         
-        . -> to persist data, need to **write to disk**
+        + -> to persist data, need to **write to disk**
     
     + Challenges:
       
@@ -478,9 +478,9 @@
       2. Containers started on different hosts should have access to its volume
          + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/Storage.png)
          
-         . Example: Central storage system
+         + Example: Central storage system
     
-    . Standard for storage implementations
+    + Standard for storage implementations
       
       + Container Storage Interface (CSI): https://github.com/container-storage-interface/spec
         
