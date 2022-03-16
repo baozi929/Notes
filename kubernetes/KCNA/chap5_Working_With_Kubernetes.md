@@ -197,70 +197,72 @@
      + kubectl uses [kubeconfig files](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/)
        + the link here will give instructions on how to manage multiple clusters and multiple users inside a kubuconfig file
      
-+ Commands
-  
-  + check kubectl config
-  
-    + ```
-         kubectl config view
-         ```
-  
-    + file consists of 3 different sections:
-  
-      + clusters
-         + context (combine clusters and users)
-         + users
-  
-  + use `kubectl --help` to check other commands
-
-
-   + **Create Kubernetes object**
-
-     1. Describe the object with YMAL file
-
-        + Example: pod.yaml
-
-          + ```
-            apiVersion: v1
-            kind: Pod
-            metadata:
-              name: nginx
-            spec:
-              containers:
-              - name: nginx
-                image: nginx:1.20
-                ports:
-                - containerPort: 80
-            ```
-
-          + A pod running a nginx container that opens port 80
-
-     2. **Create object** with YAML file
-
-        + ```
-          kubectl create -f pod.yaml
-          ```
-
-     3. **Get running pods**
-
-        + ```
-          kubectl get pod
-          ```
-
-     4. **Delete pod**
-
-        + ```
-          kubectl delete pod nginx
-          ```
-
-
-   + Other useful commands:
-
-     + explain command, help you learn how to write ye YAML file
-
+   
+   + Commands
+     
+     + check kubectl config
+     
        + ```
-         kubectl explain --help
-         ```
+            kubectl config view
+            ```
+     
+       + file consists of 3 different sections:
+     
+         + clusters
+            + context (combine clusters and users)
+            + users
+     
+     + use `kubectl --help` to check other commands
+   
+   
+      + **Create Kubernetes object**
+   
+        1. Describe the object with YMAL file
+   
+           + Example: pod.yaml
+   
+             + ```
+               apiVersion: v1
+               kind: Pod
+               metadata:
+                 name: nginx
+               spec:
+                 containers:
+                 - name: nginx
+                   image: nginx:1.20
+                   ports:
+                   - containerPort: 80
+               ```
+   
+             + A pod running a nginx container that opens port 80
+   
+        2. **Create object** with YAML file
+   
+           + ```
+             kubectl create -f pod.yaml
+             ```
+   
+        3. **Get running pods**
+   
+           + ```
+             kubectl get pod
+             ```
+   
+        4. **Delete pod**
+   
+           + ```
+             kubectl delete pod nginx
+             ```
+   
+   
+      + Other useful commands:
+   
+        + explain command, help you learn how to write ye YAML file
+   
+          + ```
+            kubectl explain --help
+            ```
+   
 
 
 
@@ -311,29 +313,30 @@
 4. initContainers
 
    + used to **start containers before the main applications starts**
-
-
-   + Example: 
-
-     + ```
-       apiVersion: v1
-       kind: Pod
-       metadata:
-         name: myapp-pod
-         labels:
-           app: myapp
-       spec:
-         containers:
-         - name: myapp-container
-           image: busybox
-           command: ['sh', '-c', 'echo The app is running! && sleep 3600']
-         initContainers:
-         - name: init-myservice
-           image: busybox
-           command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
-       ```
-
-     + init container `init-myservice` tries to reach another service -> main container will start after it completes
+   
+   
+      + Example: 
+   
+        + ```
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: myapp-pod
+            labels:
+              app: myapp
+          spec:
+            containers:
+            - name: myapp-container
+              image: busybox
+              command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+            initContainers:
+            - name: init-myservice
+              image: busybox
+              command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+          ```
+   
+        + init container `init-myservice` tries to reach another service -> main container will start after it completes
+   
 
 5. Important settings can be set for every container in a Pod
 
@@ -701,21 +704,135 @@
              + Create one container and name it `nginx` using the `.spec.template.spec.containers[0].name` field.
 
    + **StatefulSet**: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+     
      + usage:
        + run **stateful applications** like databases
+       
      + StatefulSet VS pods and containers
        + statefulset:
          + try to **retain IP addresses of pods and give them a stable name**
          + **persistent storage**
          + more graceful handling of scaling and updates
        + pods and containers: ephemeral
-
+       
+     + Example:
+     
+       + ```
+         apiVersion: v1
+         kind: Service
+         metadata:
+           name: nginx
+           labels:
+             app: nginx
+         spec:
+           ports:
+           - port: 80
+             name: web
+           clusterIP: None
+           selector:
+             app: nginx
+         ---
+         apiVersion: apps/v1
+         kind: StatefulSet
+         metadata:
+           name: web
+         spec:
+           selector:
+             matchLabels:
+               app: nginx # has to match .spec.template.metadata.labels
+           serviceName: "nginx"
+           replicas: 3 # by default is 1
+           minReadySeconds: 10 # by default is 0
+           template:
+             metadata:
+               labels:
+                 app: nginx # has to match .spec.selector.matchLabels
+             spec:
+               terminationGracePeriodSeconds: 10
+               containers:
+               - name: nginx
+                 image: k8s.gcr.io/nginx-slim:0.8
+                 ports:
+                 - containerPort: 80
+                   name: web
+                 volumeMounts:
+                 - name: www
+                   mountPath: /usr/share/nginx/html
+           volumeClaimTemplates:
+           - metadata:
+               name: www
+             spec:
+               accessModes: [ "ReadWriteOnce" ]
+               storageClassName: "my-storage-class"
+               resources:
+                 requests:
+                   storage: 1Gi
+         ```
+     
+       + Service `nginx` is headless (clusterIP: None)
+     
+       + StatefulSet `web` has 3 replicas of the nginx container that will be deployed in unique Pods
+     
+       + `volumeClaimTemplates` will provide stable storage using [PersistentVolumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) provisioned by a PersistentVolume Provisioner
+     
    + **DaemonSet**: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
+     
      + usage: 
        + ensures that **a copy of a Pod runs on all (or some) nodes of your cluster**
+       
      + DaemonSets are perfect to run **infrastructure-related workload**
        + for example **monitoring or logging tools**.
-
+       
+     + Example:
+     
+       + ```
+         apiVersion: apps/v1
+         kind: DaemonSet
+         metadata:
+           name: fluentd-elasticsearch
+           namespace: kube-system
+           labels:
+             k8s-app: fluentd-logging
+         spec:
+           selector:
+             matchLabels:
+               name: fluentd-elasticsearch
+           template:
+             metadata:
+               labels:
+                 name: fluentd-elasticsearch
+             spec:
+               tolerations:
+               # this toleration is to have the daemonset runnable on master nodes
+               # remove it if your masters can't run pods
+               - key: node-role.kubernetes.io/master
+                 operator: Exists
+                 effect: NoSchedule
+               containers:
+               - name: fluentd-elasticsearch
+                 image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+                 resources:
+                   limits:
+                     memory: 200Mi
+                   requests:
+                     cpu: 100m
+                     memory: 200Mi
+                 volumeMounts:
+                 - name: varlog
+                   mountPath: /var/log
+                 - name: varlibdockercontainers
+                   mountPath: /var/lib/docker/containers
+                   readOnly: true
+               terminationGracePeriodSeconds: 30
+               volumes:
+               - name: varlog
+                 hostPath:
+                   path: /var/log
+               - name: varlibdockercontainers
+                 hostPath:
+                   path: /var/lib/docker/containers
+         ```
+     
    + **Job**: https://kubernetes.io/docs/concepts/workloads/controllers/job/
      
      + usage:
@@ -1399,7 +1516,9 @@
 
          + What is PV?
            + An abstract description for **a slice of storage**
-           + statically provisioned by an administrator or dynamically provisioned using [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/)
+           + How to provision PV?
+             + **statically** provisioned by an administrator
+             + **dynamically** provisioned using [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/)
            + It is a **resource in the cluster** just like a node is a cluster resource. PVs are **volume plugins** like Volumes
            + **have a lifecycle independent of any individual Pod that uses the PV**
          + Object configuration includes:
@@ -1688,3 +1807,25 @@
             Normal  ScalingReplicaSet  9m54s  deployment-controller  Scaled up replica set kubernetes-bootcamp-fb5c67579 to 1
             Normal  ScalingReplicaSet  3m5s   deployment-controller  Scaled up replica set kubernetes-bootcamp-fb5c67579 to 4
           ```
+
+
+
+### Additional Resources
+
+1. Differences between Containers and Pods
+
+   - [What are Kubernetes Pods Anyway?](https://www.ianlewis.org/en/what-are-kubernetes-pods-anyway), by Ian Lewis (2017)
+
+   - [Containers vs. Pods - Taking a Deeper Look](https://iximiuz.com/en/posts/containers-vs-pods/), by Ivan Velichko (2021)
+
+2. kubectl tips & tricks
+   - [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+
+3. Storage and CSI in Kubernetes
+
+   - [Container Storage Interface (CSI) for Kubernetes GA](https://kubernetes.io/blog/2019/01/15/container-storage-interface-ga/), by Saad Ali (2019)
+
+   - [Kubernetes Storage: Ephemeral Inline Volumes, Volume Cloning, Snapshots and more!](https://www.inovex.de/de/blog/kubernetes-storage-volume-cloning-ephemeral-inline-volumes-snapshots/), by Henning Eggers (2020)
+
+4. Autoscaling in Kubernetes
+   - [Architecting Kubernetes clusters - choosing the best autoscaling strategy](https://learnk8s.io/kubernetes-autoscaling-strategies), by Daniele Polencic (2021)

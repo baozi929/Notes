@@ -22,7 +22,6 @@
    + as **cluster** spanned across multiple servers
      + work on different tasks
      + distribute load of the system
-
 2. Kubernetes clusters (from a high-level perspective)
 
    + **Control plane node(s)**
@@ -33,7 +32,6 @@
      + run applications
      + behavior is controlled by the control plane node
        + example: start a container
-
 3. Kubernetes architecture
 
    + Architecture:
@@ -67,16 +65,16 @@
      + kube-proxy
        + **handles inside and outside communication of your cluster**
        + rely on the networking capabilities of the underlying operating system if possible
-
 4. Key points:
 
    + Applications already started on a worker node will continue to run even when the control plane is not available
      + (cannot scale, schedule new application,... when control plane is offline)
-
    + Kubernetes Namespace
      + don't confuse with kernel namespaces (used to isolate containers)
      + **Kubernetes namespace** can be used to:
        + **divide a cluster to multiple virtual clusters** (used for multi-tenancy when multiple teams share a cluster)
+
+
 
 ### Kubernetes Setup
 

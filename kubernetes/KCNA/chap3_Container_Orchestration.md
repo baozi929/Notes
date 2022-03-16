@@ -24,21 +24,14 @@
    + **Developer** knows his applications and its dependencies best
    + **System administrator** provides the infrastructure, installs all of the dependencies, and configures the system on which the application runs
      + **Error-prone** and **hard to maintain**
-
 2. Solutions
 
    + Virtual machines
 
      + can be used to emulate a full server with **cpu, memory, storage, networking, operating system and the software** on top
-
-
      + Pros:
-       
-       + allows **running multiple isolated servers** on the same hardware
-
-
+          + allows **running multiple isolated servers** on the same hardware
      + Cons:
-       
        + **Need a whole operating system including the kernel**, therefore comes with some **overhead**
 
    + Containers
@@ -221,7 +214,6 @@
        + -f: specify path of Dockerfile
        
      
-
    + Use container registry to distribute images:
      
      + ```shell
@@ -272,8 +264,7 @@
      
      + Could
      
-
-   + Reference: [Kubernetes documentation](https://kubernetes.io/docs/concepts/security/overview/)
++ Reference: [Kubernetes documentation](https://kubernetes.io/docs/concepts/security/overview/)
 
 
 
@@ -287,24 +278,25 @@
 2. Problems to be solved when managing and deploying large amounts of containers:
 
    + Providing **compute resources** like virtual machines where containers can run on
-
-
-   + **Schedule** containers to servers in an efficient way
-
-
-   + **Allocate resources like CPU and memory** to containers
-
-
-   + **Manage the availability of containers** and replace them if they fail
-
-
-   + **Scale containers** if load increases
-
-
-   + **Provide networking** to connect containers together
-
-
-   + **Provision storage** if containers need to **persist data**
+   
+   
+      + **Schedule** containers to servers in an efficient way
+   
+   
+      + **Allocate resources like CPU and memory** to containers
+   
+   
+      + **Manage the availability of containers** and replace them if they fail
+   
+   
+      + **Scale containers** if load increases
+   
+   
+      + **Provide networking** to connect containers together
+   
+   
+      + **Provision storage** if containers need to **persist data**
+   
 
 3. Most **container orchestration systems** consist of two parts:
 
@@ -487,12 +479,11 @@
        + consist of layers that include what you added during the build phase
          + -> get the same behavior and functionality every time
        
-
      + **read-write layer**:
        + **lost when the container is stopped or deleted**
        
        + -> to persist data, need to **write to disk**
-
+   
 2. Challenges:
 
    1. **Persist data** on the host where container was started
