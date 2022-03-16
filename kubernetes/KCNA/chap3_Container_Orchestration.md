@@ -201,25 +201,28 @@
          # In this case we start our python app "my-app.py"
          CMD ["python3","my-app.py"]
          ```
-
-
-   + Command to build image
-     
-     + ```shell
-       docker build -t my-python-image -f Dockerfile
-       ```
-     
-       + --tag, -t: can specify a name tag for your image, like **name:tag**
-       
-       + -f: specify path of Dockerfile
-       
-     
-   + Use container registry to distribute images:
-     
-     + ```shell
-       docker push my-registry.com/my-python-image
-       docker pull my-registry.com/my-python-image
-       ```
+   
+   
+      + Command to build image
+        
+        + ```shell
+          docker build -t my-python-image -f Dockerfile
+          ```
+        
+          + --tag, -t: can specify a name tag for your image, like **name:tag**
+          
+          + -f: specify path of Dockerfile
+          
+        
+   
+   
+      + Use container registry to distribute images:
+        
+        + ```shell
+          docker push my-registry.com/my-python-image
+          docker pull my-registry.com/my-python-image
+          ```
+   
 
 3. Demo: Building Container images
    + [Sample application | Docker Documentation](https://docs.docker.com/get-started/02_our_app/)
@@ -297,7 +300,6 @@
    
       + **Provision storage** if containers need to **persist data**
    
-
 3. Most **container orchestration systems** consist of two parts:
 
    + a **control plane** that is responsible for the management of the containers 
@@ -327,10 +329,9 @@
        + easy for containers to communicate with each other (administrators don't need to configure complex networking and routing between hosts and containers)
 
 3. [Container Network Interface (CNI)](https://github.com/containernetworking/cni)
-
    + What is CNI:
      + A standard that can be used to **write or configure network plugins**
-
+   
    + Benefits form CNI:
      + easy to swap out different plugins in various container orchestration platforms
 
@@ -383,12 +384,13 @@
 1. Challenge:
 
    + Network is important for microservices and containers -> **networking can be complex and opaque for developers and administrators**
-
-
-   + Functionality need when **container communicate with each other**:
-     + monitoring
-     + access control
-     + encryption of the networking traffic
+   
+   
+      + Functionality need when **container communicate with each other**:
+        + monitoring
+        + access control
+        + encryption of the networking traffic
+   
 
 2. Solutions
 
@@ -407,7 +409,7 @@
 
    + Solution 2: Service mesh
 
-     + What service mash does?
+     + What service mesh does?
        + **adds a proxy server to *every* container** that you have in your architecture
      + Istio Architecture:
        + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/chap3_IstioArchitecture.png)

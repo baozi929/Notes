@@ -25,6 +25,8 @@
 + CaaS: Containers as a Service
 + IaC: Infrastructure as Code
 + FinOps: Cloud Financial Operations
++ HPA
++ VPA
 
 
 
@@ -425,41 +427,523 @@
 
 ##### 1. Container Orchestration Fundamentals
 
+<details>
+<summary>Visual machines VS Containers</summary>
+
+
+- Virtual machines
+  + Pros:
+    + **Full isolation security**
+  + Cons:
+    + Need a whole operating system including the kernel -> Some overhead
+- Containers
+  + Pros:
+
+    + **much more efficient** than spinning up a lot of virtual machines
+  + Cons:
+    + **Shared host exploits**
+
+</details>
+
+<details>
+<summary>Isolate processes</summary>
+
+
+- chroot
+
+  - used to **isolate a process from the root filesystem** (basically "hide" the files from the process and **simulate a new root directory**)
+- namespaces
+
+  - used to **isolate various resources**
+
+    - pid, net, mnt, ipc, usr, uts, cgroup, time
+- cgroups
+
+  - used to
+    + **organize processes in hierarchical groups**
+    + **assign them resources** like memory and CPU
+
+</details>
+
+<details>
+<summary>Run containers</summary>
+
+
+- OCI [runtime-spec](https://github.com/opencontainers/runtime-spec)
+
+  - [runC](https://github.com/opencontainers/runc) is a container runtime reference implementation
+- Tools to run container: Docker or [podman](https://podman.io/)
+
+  - commands:
+
+    - pull images: `docker pull nginx`
+    - check local images: `docker images`
+
+    - create container and run: `docker run --detach --publish-all nginx:latest`
+
+      + --detach, -d: Run container in background and print container ID
+
+      + --publish, -p: `localport:containerport`, publish a container's port(s) to the host
+
+      + --publish-all, -P: Publish all exposed ports to random ports
+
+    - check containers: `docker ps`
+
+    - stop container: `docker stop CONTAINER_ID`
+
+</details>
+
+<details>
+<summary>Build container images</summary>
+
+
+- Tools to build image: [buildah](https://buildah.io/) or [kaniko](https://github.com/GoogleContainerTools/kaniko)
+
+- OCI [image-spec](https://github.com/opencontainers/image-spec)
+
+- Docker: A text document that contains all the commands a user could call on the command line to assemble an image
+
+
+  - commands:
+
+
+    - Command to build image: 
+
+
+      - ```shell
+        docker build -t my-python-image -f Dockerfile
+        ```
+
+
+        - --tag, -t: can specify a name tag for your image, like **name:tag**
+        - -f: specify path of Dockerfile
+
+
+    - Use container registry to distribute images:
+
+      + ```shell
+        docker push my-registry.com/my-python-image
+        docker pull my-registry.com/my-python-image
+        ```
+
+</details>
+
+<details>
+<summary>Microservice architecture</summary>
+
+
+- Basis of microservice architecture:
+
+  - a lot of small containers that are **loosely coupled, isolated and independent**
+    + small containers are **self-contained small parts of business logic** that are part of a bigger application
+
+</details>
+
+<details>
+<summary>Container orchestration systems</summary>
+
+
+- Consist of:
+
+  - a **control plane** that is responsible for the management of the containers 
+  - **worker nodes** that actually host the containers
+
+</details>
+
+
+
+
+
 ##### 2. Runtime
+
+
 
 ##### 3. Security
 
+[Docker security | Docker Documentation](https://docs.docker.com/engine/security/#linux-kernel-capabilities)
+
+[Top 20 Dockerfile best practices for security &ndash; Sysdig](https://sysdig.com/blog/dockerfile-best-practices/)
+
+<details>
+<summary>Characteristics of containers and security risks</summary>
+
+
+- Characteristics of containers
+
+  - Share the same kernel -> risky for the whole system
+
+    - example: kill processes, modify the host network by creating routing rules
+- Security risks:
+
+  - Execute processes with **too many privileges** (especially start processes as **root** or **administrator**)
+  - Use of public images (Popular public image registries: [Docker Hub](https://hub.docker.com/), [Quay](https://quay.io/))
+
+</details>
+
+The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
+
+
+
 ##### 4. Networking
+
+<details>
+<summary>Network in containers</summary>
+
+
+- Network namespace allows each container has it's own **unique IP address**
+
+  - -> **multiple applications can open the same network port** (example: can have multiple contianerized web server with port 8080)
+- Map a port form the container to a port form the host system -> make **application accessible from ouside the host system**
+- Use an **overly network** -> containers across host **communicate with each other**
+
+</details>
+
+<details>
+<summary>CNI</summary>
+
+
+- [Container Network Interface (CNI)](https://github.com/containernetworking/cni)
+- What is CNI:
+  + A standard that can be used to **write or configure network plugins**
+- Benefits form CNI:
+  + easy to swap out different plugins in various container orchestration platforms
+
+</details>
+
+<details>
+<summary>Service Discovery and DNS</summary>
+
+
+- Manage servers in data centers
+
+  - Traditional ways:
+
+    - administrator manually maintain large lists of servers, their host names, IP addresses, and purposes
+  - Solution in container orchestration platforms:
+
+    - Automatically put all the information in a **Service Registry**
+    - Service Discovery:
+
+      - Service discovery is **the process of automatically detecting devices and services on a network**.
+      - Most used approaches:
+
+        - DNS:
+
+          - DNS server have a **service API**, can be used to **register new services** as they are created
+        - K-V Store:
+
+          - Using a strongly consistent datastore **especially to store information about services**
+          - Popular choices of Key-Value-Store database to store information about services: [etcd](https://github.com/coreos/etcd/), [Consul](https://www.consul.io/) or [Apache Zookeeper](https://zookeeper.apache.org/)
+
+</details>
+
+
 
 ##### 5. Service Mesh
 
+<details>
+<summary>Functions required when container communicate with each other</summary>
+
+
+- monitoring
+- access control
+- encryption of the networking traffic
+
+</details>
+
+<details>
+<summary>Solution 1: Proxy</summary>
+
+
+- Start **a second container** to manage network traffic instead of implement all the functionalities to your app
+- **proxy**, sits between a client and server, can modify or filter network traffic
+
+  - Proxy to manage network traffic: [nginx](https://www.nginx.com/), [haproxy](http://www.haproxy.org/) or [envoy](https://www.envoyproxy.io/)
+
+</details>
+
+<details>
+<summary>Solution 2: Service mesh</summary>
+
+
+- What service mash does?
+
+  + **adds a proxy server to *every* container** that you have in your architecture
+
+- Example:
+
+
+  - Istio Architecture:
+
+    + <p align="center">
+        <img width="600" src="./figures/chap3_IstioArchitecture.png">
+      </p>
+
+    + Includes:
+
+      + data plane: formed by the proxies in a service
+        + implement networking rules
+
+        + shape the traffic flow
+      + control plane: manage the rules, such as:
+
+        + how traffic flows from service A to service B
+        + what configuration should be applied to the proxies
+
+- popular service mesh: [istio](https://istio.io/), [linkerd](https://linkerd.io/)
+
+</details>
+
+<details>
+<summary>SMI Project</summary>
+
+
+- Standard for service mesh: [Service Mesh Interface (SMI)](https://smi-spec.io/)
+
+  - aims at defining a specification on **how a service mesh from various providers can be implemented**
+  - goal:
+
+    + standardize the end user experience for service meshes
+    + a standard for the providers that want to **integrate with Kubernetes**
+
+</details>
+
+
+
 ##### 6. Storage
+
+<details>
+<summary>Storage in containers</summary>
+
+
+- By default: ephemeral
+
+- Persist data:
+
+
+  - How: Use **volumes**
+
+  - Example: 
+
+
+    - Data shared between 2 containers on the same host
+
+
+      - <p align="center">
+          <img width="360" src="./figures/chap3_DataIsSharedBetween2ContainersOnTheSameHost.png">
+        </p>
+
+    - Data shared between containers on different hosts
+
+
+      - <p align="center">
+          <img width="500" src="./figures/chap3_Storage.png">
+        </p>
+
+</details>
+
+<details>
+<summary>CSI</summary>
+
+
+- Container Storage Interface (CSI): https://github.com/container-storage-interface/spec
+  + offer a **uniform interface** which allows attaching different storage systems no matter if it’s **cloud or on-premises** storage
+
+</details>
 
 
 
 ### Cloud Native Architecture (16%)
+
+##### 0. Basic
 
 <details>
 <summary>Characteristics of Cloud Native Architecture</summary>
 
 - High level of Automation
 - Self-healing
-- Secure by default
+- Scalable
 - Cost-efficient
 - Easy-to-maintain
-- Scalable
+- Secure by default
+
+</details>
+
+<details>
+<summary>The twelve-factor app</summary>
+
+
+- What is The Twelve-Factor App?
+
+  - guideline for **developing cloud native applications**
+- Reference: [The Twelve-Factor App](https://12factor.net/)
 
 </details>
 
 ##### 1. Autoscaling
 
+<details>
+<summary>Horizontal scaling VS Vertical scaling</summary>
+
+
+- Horizontal scaling
+
+  - Adding **additional nodes or machines** to your infrastructure to cope with new demands.
+  - Example:
+
+    - new copies of application process
+    - new virtual machines
+    - new racks of servers and other hardware
+- Vertical scaling
+
+  - Moving **more resources to a single server** to accommodate the growth of your application.
+  - Example:
+
+    - add more RAM -> limitation: number of RAM slots
+
+</details>
+
+TBD: HPA VPA Cluster autoscaler
+
+
+
 ##### 2. Serverless
+
+<details>
+<summary>What is serverless</summary>
+
+
+- Serverless requires servers
+- Goal of serverless:
+
+  - Developers only need to provide the application code
+  - Cloud provider provide environment to run the application
+
+</details>
+
+<details>
+<summary>FaaS - Function as a Service</summary>
+
+
+- A type of [cloud-computing](https://www.ibm.com/cloud/learn/cloud-computing-gbl) service that allows you to execute code **in response to events** without the complex infrastructure typically associated with building and launching [microservices](https://www.ibm.com/sg-en/cloud/learn/microservices) applications.
+
+</details>
+
+<details>
+<summary>Standardizaton: The CloudEvents project</summary>
+
+
+- [CloudEvents](https://cloudevents.io/)
+- A specification for describing event data in a common way
+
+</details>
+
+<details>
+<summary>Applications on serverless platforms</summary>
+
+
+- stricter requirements for cloud native architecture
+- writing **small, stateless applications** -> perfect fit for event or data streams, scheduled tasks, business logic or batch processing
+
+</details>
+
+
 
 ##### 3. Community and Governance
 
+<details>
+<summary>SIG</summary>
+
+
+- https://github.com/kubernetes/community/blob/master/sig-list.md
+
+</details>
+
+<details>
+<summary>Governance</summary>
+
+
+- Technical Oversight Committee (TOC) in CNCF
+
+  - https://github.com/cncf/toc
+  - practices the principle of “**minimal viable governance**”
+    + does not control the projects
+    + but encourages them to be self-governing and community owned
+
+</details>
+
+
+
 ##### 4. Roles and Personas
 
+<details>
+<summary>Cloud native roles</summary>
+
+
+- Cloud Architect
+  + adopt cloud technologies
+  + design application landscape and infrastructure (focus on security, scalability and deployment mechanisms)
+- DevOps Engineer
+  + use tools and processes that balance out software development and operations
+- Security Engineer
+- DevSecOps Engineer
+  + DevOps Engineer + Security Engineer
+- Data Engineer
+  + collect, store, and analyze the vast amounts of data that are being or can be collected in large systems
+    + provisioning and managing specialized infrastructure
+    + working with that data
+- Full-Stack Developer
+  + frontend and backend development + infrastructure essentials
+- Site Reliability Engineer (SRE)
+  + Goal of SRE:
+    + create and maintain software that is **reliable and scalable**
+  + SREs use 3 main metrics to measure performance and reliability -> define **error budget**
+    + **Service Level Objectives (SLO)**:
+      + a **target level** for the reliability of your service
+      + For example, reaching a service latency of less that 100ms.
+    + **Service Level Indicators (SLI)**:
+      + a **quantitative measure** of some aspect of the level of service
+      + For example how long a request actually needs to be answered.
+    + **Service Level Agreements (SLA)**:
+      + Answers the question what happens if SLOs are not met.
+  + Error budget: the amount (or time) of errors your application can have, before actions are taken, like stopping deployments to production.
+
+</details>
+
+
+
 ##### 5. Open Standards
+
+<details>
+<summary>OCI</summary>
+
+
+- [Open Container Initiative (OCI)](https://opencontainers.org/)
+
+  - Standards for how to build and run containers
+- [image-spec](https://github.com/opencontainers/image-spec)
+  + defines how to **build and package container images**
+- [runtime-spec](https://github.com/opencontainers/runtime-spec)
+  + specifies the **configuration, execution environment and lifecycle of containers**
+- [Distribution-Spec](https://github.com/opencontainers/distribution-spec)
+  + provides a standard for the distribution of content in general and container images in particular
+
+</details>
+
+<details>
+<summary>Standards for container orchestration systems</summary>
+
+
+- [Container Network Interface (CNI)](https://github.com/containernetworking/cni):
+  + A specification on how to **implement networking** for Containers.
+- [Container Runtime Interface (CRI)](https://github.com/kubernetes/cri-api):
+  + A specification on how to **implement container runtimes** in container orchestration systems.
+- [Container Storage Interface (CSI)](https://github.com/container-storage-interface/spec):
+  + A specification on how to **implement storage** in container orchestration systems.
+- [Service Mesh Interface (SMI)](https://smi-spec.io/):
+  + A specification on how to **implement Service Meshes** in container orchestration systems with a focus on Kubernetes.
+
+</details>
 
 
 
