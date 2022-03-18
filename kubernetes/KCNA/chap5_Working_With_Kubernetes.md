@@ -66,17 +66,17 @@
                  - containerPort: 80
          ```
 
-       + required fields:
-
+    + required fields:
+      
          + `apiVersion`:
-    + Which **version of the Kubernetes API** you're using to create this object
+           + Which **version of the Kubernetes API** you're using to create this object
          + `kind`:
-    + What **kind of object** you want to create
-           + For example: Deployment, Pod, ...
+           + What **kind of object** you want to create
+             + For example: Deployment, Pod, ...
          + `matadata`:
-    + Data that helps **uniquely identify the object**, including a `name` string, `UID`, and optional `namespace`
+           + Data that helps **uniquely identify the object**, including a `name` string, `UID`, and optional `namespace`
          + `spec`:
-    + What **state** you desire for the object
+           + What **state** you desire for the object
 
 
 
@@ -197,7 +197,6 @@
      + kubectl uses [kubeconfig files](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/)
        + the link here will give instructions on how to manage multiple clusters and multiple users inside a kubuconfig file
      
-   
    + Commands
      
      + check kubectl config
@@ -337,7 +336,6 @@
    
         + init container `init-myservice` tries to reach another service -> main container will start after it completes
    
-
 5. Important settings can be set for every container in a Pod
 
    + `resources`: 
@@ -916,120 +914,121 @@
          ```
 
        + (can use KubeView to visualize details)
-
-
-   + **Create ReplicaSet object**
-
-     + replicaset.yaml
-
-       + ```
-         apiVersion: v1
-         kind: ReplicaSet
-         metadata:
-           name: nginx
-         spec:
-           replicas: 3
-           selector:
-             matchLabels:
-               app: nginx
-           template:
-           	metadata:
-           	  label:
-           	    app: nginx
-           	spec:
-               containers:
-               - name: nginx
-                 image: nginx:1.19
-                 ports:
-                 - containerPort: 80
-         ```
-
-     + create replicaset
-
-       + ```
-         kubectl create -f replicaset.yaml
-         ```
-
-     + get pods
-
-       + ```
-         $ kubectl get pods
-         NAME			READY	STATUS		RESTARTS	AGE
-         nginx-8l6sp		1/1		Running 	0			5s
-         nginx-9bnkz		1/1		Running 	0			5s
-         nginx-bvcfz		1/1		Running 	0			5s
-         ```
-
-       + ```
-         $ kubectl get pods -o wide
-         NAME			READY	STATUS		RESTARTS	AGE	IP				NODE	........
-         nginx-8l6sp		1/1		Running 	0			5s	192.168.36.154	lfs250-worker
-         nginx-9bnkz		1/1		Running 	0			5s	192.168.36.156	lfs250-worker
-         nginx-bvcfz		1/1		Running 	0			5s	192.168.36.155	lfs250-worker
-         ```
-
-     + scale up/ down number of copies (use `kubectl scale --help` for help)
-
-       + ```
-         kubectl scale --replicas=10 rs/nginx
-         ```
-
-
-   + **Create deployment object**
-
-     + Deployment object can
-     
-       + **manage multiple ReplicaSets**
-       + control **how a rolling upgrade of pods should be done in Kubernetes**
-         + The Deployment updates Pods in a rolling update fashion when `.spec.strategy.type==RollingUpdate`.
-         + You can specify `maxUnavailable` and `maxSurge` to control the rolling update process
-     
-     + deployment.yaml
-     
-       + ```
-         apiVersion: apps/v1
-         kind: Deployment
-         metadata:
-           labels:
-             app: nginx
-           name: nginx
-         spec:
-           replicas: 3
-           selector:
-             matchLabels:
-               app: nginx
-           template:
-           	metadata:
-           	  creationTimestamp: null
-           	  label:
-           	    app:nginx
-           	spec:
-               containers:
-               - name: nginx
-                 image: nginx:1.19
-         ```
-     
-     + create deployment
-     
-       + ```
-         kubectl create -f deployment.yaml
-         ```
-     
-     + scale deployment
-     
-       + ```
-         kubectl scale --replicas=10 deployment/nginx
-         ```
-     
-     + **update deployment**
-     
-       + ```
-         kubectl set image deployment/nginx nginx=nginx:1.20
-         ```
-     
-       + Kubernetes will **start a new ReplicaSet will be started**, and **scale down the old ReplicaSet**
-     
-       + Wait for seconds, we'll get a new ReplicaSet with new image
+   
+   
+      + **Create ReplicaSet object**
+   
+        + replicaset.yaml
+   
+          + ```
+            apiVersion: v1
+            kind: ReplicaSet
+            metadata:
+              name: nginx
+            spec:
+              replicas: 3
+              selector:
+                matchLabels:
+                  app: nginx
+              template:
+              	metadata:
+              	  label:
+              	    app: nginx
+              	spec:
+                  containers:
+                  - name: nginx
+                    image: nginx:1.19
+                    ports:
+                    - containerPort: 80
+            ```
+   
+        + create replicaset
+   
+          + ```
+            kubectl create -f replicaset.yaml
+            ```
+   
+        + get pods
+   
+          + ```
+            $ kubectl get pods
+            NAME			READY	STATUS		RESTARTS	AGE
+            nginx-8l6sp		1/1		Running 	0			5s
+            nginx-9bnkz		1/1		Running 	0			5s
+            nginx-bvcfz		1/1		Running 	0			5s
+            ```
+   
+          + ```
+            $ kubectl get pods -o wide
+            NAME			READY	STATUS		RESTARTS	AGE	IP				NODE	........
+            nginx-8l6sp		1/1		Running 	0			5s	192.168.36.154	lfs250-worker
+            nginx-9bnkz		1/1		Running 	0			5s	192.168.36.156	lfs250-worker
+            nginx-bvcfz		1/1		Running 	0			5s	192.168.36.155	lfs250-worker
+            ```
+   
+        + scale up/ down number of copies (use `kubectl scale --help` for help)
+   
+          + ```
+            kubectl scale --replicas=10 rs/nginx
+            ```
+   
+   
+      + **Create deployment object**
+   
+        + Deployment object can
+        
+          + **manage multiple ReplicaSets**
+          + control **how a rolling upgrade of pods should be done in Kubernetes**
+            + The Deployment updates Pods in a rolling update fashion when `.spec.strategy.type==RollingUpdate`.
+            + You can specify `maxUnavailable` and `maxSurge` to control the rolling update process
+        
+        + deployment.yaml
+        
+          + ```
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              labels:
+                app: nginx
+              name: nginx
+            spec:
+              replicas: 3
+              selector:
+                matchLabels:
+                  app: nginx
+              template:
+              	metadata:
+              	  creationTimestamp: null
+              	  label:
+              	    app:nginx
+              	spec:
+                  containers:
+                  - name: nginx
+                    image: nginx:1.19
+            ```
+        
+        + create deployment
+        
+          + ```
+            kubectl create -f deployment.yaml
+            ```
+        
+        + scale deployment
+        
+          + ```
+            kubectl scale --replicas=10 deployment/nginx
+            ```
+        
+        + **update deployment**
+        
+          + ```
+            kubectl set image deployment/nginx nginx=nginx:1.20
+            ```
+        
+          + Kubernetes will **start a new ReplicaSet will be started**, and **scale down the old ReplicaSet**
+        
+          + Wait for seconds, we'll get a new ReplicaSet with new image
+   
 
 
 
