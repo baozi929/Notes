@@ -1190,7 +1190,10 @@
 
    + Example:
      + where an Ingress sends all its traffic to one Service
-       + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/chap5_Ingress.png)
+       
+       + <p align="center">
+         <img width="600" src="./figures/chap5_Ingress.png">
+         </p>
        
      + A minimal Ingress resource example:
      
@@ -1277,68 +1280,69 @@
    + Using a Service to Expose Your App
 
      + https://kubernetes.io/docs/tutorials/kubernetes-basics/expose/expose-intro/
-
-
-   + Steps:
-
-     + List Pods:
-
-       + ```
-         $ kubectl get pods
-         NAME                                  READY   STATUS    RESTARTS   AGE
-         kubernetes-bootcamp-fb5c67579-tj5kr   1/1     Running   0          2m55s
-         ```
-
-     + List Services:
-
-       + ```
-         $ kubectl get services
-         NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-         kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   4m6s
-         ```
-
-     + Create a new service and expose it to external traffic
-
-       + ```
-         kubectl expose deployment/kubernetes-bootcamp --type="NodePort" --port 8080
-         ```
-
-       + if we get service now, Pod kubernetes-bootcamp is also exposed
-
-         + ```
-           $ kubectl get services
-           NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
-           kubernetes            ClusterIP   10.96.0.1       <none>        443/TCP          6m40s
-           kubernetes-bootcamp   NodePort    10.97.223.117   <none>        8080:32284/TCP   2m1s
-           ```
-
-     + Find out what port was opened externally
-
-       + ```
-         $ kubectl describe services/kubernetes-bootcamp
-         Name:                     kubernetes-bootcamp
-         Namespace:                default
-         Labels:                   app=kubernetes-bootcamp
-         Annotations:              <none>
-         Selector:                 app=kubernetes-bootcamp
-         Type:                     NodePort
-         IP Families:              <none>
-         IP:                       10.97.223.117
-         IPs:                      10.97.223.117
-         Port:                     <unset>  8080/TCP
-         TargetPort:               8080/TCP
-         NodePort:                 <unset>  32284/TCP
-         Endpoints:                172.18.0.3:8080
-         Session Affinity:         None
-         External Traffic Policy:  Cluster
-         Events:                   <none>
-         ```
-
-     + Connect to the pod 
-
-       + ```
-         curl $(minikube ip):$NODE_PORT
-         ```
+   
+   
+      + Steps:
+   
+        + List Pods:
+   
+          + ```
+            $ kubectl get pods
+            NAME                                  READY   STATUS    RESTARTS   AGE
+            kubernetes-bootcamp-fb5c67579-tj5kr   1/1     Running   0          2m55s
+            ```
+   
+        + List Services:
+   
+          + ```
+            $ kubectl get services
+            NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+            kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   4m6s
+            ```
+   
+        + Create a new service and expose it to external traffic
+   
+          + ```
+            kubectl expose deployment/kubernetes-bootcamp --type="NodePort" --port 8080
+            ```
+   
+          + if we get service now, Pod kubernetes-bootcamp is also exposed
+   
+            + ```
+              $ kubectl get services
+              NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+              kubernetes            ClusterIP   10.96.0.1       <none>        443/TCP          6m40s
+              kubernetes-bootcamp   NodePort    10.97.223.117   <none>        8080:32284/TCP   2m1s
+              ```
+   
+        + Find out what port was opened externally
+   
+          + ```
+            $ kubectl describe services/kubernetes-bootcamp
+            Name:                     kubernetes-bootcamp
+            Namespace:                default
+            Labels:                   app=kubernetes-bootcamp
+            Annotations:              <none>
+            Selector:                 app=kubernetes-bootcamp
+            Type:                     NodePort
+            IP Families:              <none>
+            IP:                       10.97.223.117
+            IPs:                      10.97.223.117
+            Port:                     <unset>  8080/TCP
+            TargetPort:               8080/TCP
+            NodePort:                 <unset>  32284/TCP
+            Endpoints:                172.18.0.3:8080
+            Session Affinity:         None
+            External Traffic Policy:  Cluster
+            Events:                   <none>
+            ```
+   
+        + Connect to the pod 
+   
+          + ```
+            curl $(minikube ip):$NODE_PORT
+            ```
+   
 
 6. Demo: Using Services
 

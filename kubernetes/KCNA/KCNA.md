@@ -27,6 +27,7 @@
 + FinOps: Cloud Financial Operations
 + HPA: Horizontal Pod Autoscaler
 + VPA: Vertical Pod Autoscaler
++ PDB: Pod Disruption Budget
 
 
 
@@ -357,7 +358,7 @@
 
 
 
-# Tools
+# Tools & ...
 
 + Build images: [buildah](https://buildah.io/) or [kaniko](https://github.com/GoogleContainerTools/kaniko)
 + Alternative to Docker: [podman](https://podman.io/) (provides similar API as Docker)
@@ -374,13 +375,24 @@
     + [Rancher](https://rancher.com/), [k3s](https://k3s.io/), [OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift), [VMWare Tanzu](https://tanzu.vmware.com/tanzu)
   + Consume Kubernetes from a cloud provider:
     - [Amazon (EKS)](https://aws.amazon.com/eks/), [Google (GKE)](https://cloud.google.com/kubernetes-engine), [Microsoft (AKS)](https://azure.microsoft.com/en-us/services/kubernetes-service), [DigitalOcean (DOKS)](https://www.digitalocean.com/products/kubernetes/)
++ Access control:
+  + Authentication:
+    + With a digital signed certificate ([X.509](https://en.wikipedia.org/wiki/X.509)) or with an external identity management system.
+    + [Service Accounts](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/) can be used to authenticate technical users.
+
+  + Authorization:
+    + In Kubernetes this can be done with [Role Based Access Control (RBAC)](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
+
+  + Admission control:
+    + [Admission controllers](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/) can be used to modify or validate the request
+    + Tools like the [Open Policy Agent](https://www.openpolicyagent.org/) can be used to manage admission control externally
+
 + Container runtimes: [containerd](https://containerd.io/), [CRI-O](https://cri-o.io/), Docker (will be removed in Kubernetes 1.23)
 + Security containers: [gvisor](https://github.com/google/gvisor), [Kata Containers](https://katacontainers.io/)
 + Network vendors: [Project Calico](https://www.tigera.io/project-calico/), [Weave](https://www.weave.works/oss/net/), [Cilium](https://cilium.io/)
 + DNS serve add-on in K8S for Service Discovery: [core-dns](https://kubernetes.io/docs/tasks/administer-cluster/coredns/)
 + Tools to interact with K8S: [kubernetes/dashboard](https://github.com/kubernetes/dashboard), [derailed/k9s](https://github.com/derailed/k9s), [Lens](https://k8slens.dev/), [VMware Tanzu Octant](https://github.com/vmware-tanzu/octant)
 + Package manager for Kubernetes: [Helm](https://helm.sh/)
-
 + Storage
   + Cloud block storage: [Amazon EBS](https://aws.amazon.com/ebs/), [Google Persistent Disks](https://cloud.google.com/persistent-disk), [Azure Disk Storage](https://azure.microsoft.com/en-us/services/storage/disks/)
   + Storage systems: [Ceph](https://ceph.io/en/), [GlusterFS](https://www.gluster.org/)
@@ -410,7 +422,7 @@
 
 
 
-- Reference: https://kubernetes.io/zh/docs/concepts/overview/working-with-objects/
+- Reference: https://kubernetes.io/docs/concepts/overview/working-with-objects/
 - **Kubernetes objects** are persistent entities in the Kubernetes system. Kubernetes uses these entities to **represent the state of your cluster**. Can be used to describe:
   - What containerized **applications** are running (and on which nodes)
   - The **resources** available to those applications
