@@ -921,16 +921,25 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Kubernetes Namespace</summary>
+
+
+
 + **Kubernetes namespace** can be used to:
   + **divide a cluster to multiple virtual clusters** (used for multi-tenancy when multiple teams share a cluster)
 + Default namespace in Kubernetes
 
 
+    + **default**: The default namespace for objects with no other namespace
 
-  + **default**: The default namespace for objects with no other namespace
-  + **kube-system**: The namespace for objects created by the Kubernetes system
-  + **kube-public**: This namespace is created automatically and is readable by all users (including those not authenticated)
-  + **kube-node-lease**: This namespace holds [Lease](https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/lease-v1/) objects associated with each node.
+
+    + **kube-system**: The namespace for objects created by the Kubernetes system
+
+
+    + **kube-public**: This namespace is created automatically and is readable by all users (including those not authenticated)
+
+
+    + **kube-node-lease**: This namespace holds [Lease](https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/lease-v1/) objects associated with each node.
+
 
 </details>
 
@@ -978,9 +987,11 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Running conatiners on Kubernetes</summary>
+
+
+
+
 + Define **Pods** as the smallest compute unit
-
-
 
 + When create a Pod in Kubernetes, several components are involved
 
@@ -1130,11 +1141,11 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
       + ```shell
         docker build -t my-python-image -f Dockerfile
         ```
-
+    
       + --tag, -t: can specify a name tag for your image, like **name:tag**
-
+    
       + -f: specify path of Dockerfile
-
+    
     + Use container registry to distribute images:
 
 
@@ -1308,19 +1319,19 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 
     + Istio Architecture:
-
+    
       + <p align="center">
           <img width="600" src="./figures/chap3_IstioArchitecture.png">
         </p>
-
+    
       + Includes:
-
+    
         + data plane: formed by the proxies in a service
           + implement networking rules
-
+    
           + shape the traffic flow
         + control plane: manage the rules, such as:
-
+    
           + how traffic flows from service A to service B
           + what configuration should be applied to the proxies
 
@@ -1369,9 +1380,9 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
         + <p align="center">
                 <img width="360" src="./figures/chap3_DataIsSharedBetween2ContainersOnTheSameHost.png">
               </p>
-
+    
       + Data shared between containers on different hosts
-
+    
         + <p align="center">
                 <img width="500" src="./figures/chap3_Storage.png">
               </p>
