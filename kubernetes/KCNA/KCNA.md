@@ -441,7 +441,6 @@
   + `metadata` + Data that helps uniquely identify the object, including a `name` string, `UID`, and optional `namespace`
   + `spec` + What state you desire for the object
 
-
 </details>
 
 <details>
@@ -522,7 +521,6 @@
   + [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
   + [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
   + [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)
-
 
 </details>
 
@@ -722,20 +720,21 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Networking Objects: Services</summary>
-+ Service:
 
-  + An abstract way to **expose** an application running on a set of [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) **as a network service**.
 
-+ Fact -> Requirement -> Service
+  + Service:
 
-  + Fact:
+    + An abstract way to **expose** an application running on a set of [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) **as a network service**.
+    + Fact -> Requirement -> Service
 
-    + Each Pod gets its own IP address
-    + But in a Deployment, the set of Pods running in one moment in time could be different from the set of Pods running that application a moment later.
+      + Fact:
 
-  + Problem:
+        + Each Pod gets its own IP address
+        + But in a Deployment, the set of Pods running in one moment in time could be different from the set of Pods running that application a moment later.
 
-    + If some set of Pods (call them "backends") provides functionality to other Pods (call them "frontends") inside your cluster, **how do the frontends find out and keep track of which IP address to connect to, so that the frontend can use the backend part of the workload?**
+      + Problem:
+
+        + If some set of Pods (call them "backends") provides functionality to other Pods (call them "frontends") inside your cluster, **how do the frontends find out and keep track of which IP address to connect to, so that the frontend can use the backend part of the workload?**
 
 + Service in Kubernetes:
 
@@ -745,39 +744,41 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Service Discovery</summary>
-+ Reference: https://kubernetes.io/docs/concepts/services-networking/service/#discovering-services
+
+
+  + Reference: https://kubernetes.io/docs/concepts/services-networking/service/#discovering-services
 + Kubernetes supports 2 primary modes of finding a Service
 
   + environment variables
   + DNS
 
+
 </details>
 
 <details>
 <summary>Service Types</summary>
+
+
 + Reference: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
 + `ClusterIP`:
   + Exposes the Service on a cluster-internal IP. Choosing this value makes the Service **only reachable from within the cluster**. This is the default `ServiceType`.
-
 + [`NodePort`](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport):
-
-  + Exposes the Service on each Node's IP at a static port (the `NodePort`). A `ClusterIP` Service, to which the `NodePort` Service routes, is automatically created. You'll be able to contact the `NodePort` Service, from outside the cluster, by requesting `<NodeIP>:<NodePort>`.
-
++ Exposes the Service on each Node's IP at a static port (the `NodePort`). A `ClusterIP` Service, to which the `NodePort` Service routes, is automatically created. You'll be able to contact the `NodePort` Service, from outside the cluster, by requesting `<NodeIP>:<NodePort>`.
 + [`LoadBalancer`](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer):
 
   + Exposes the Service externally using a cloud provider's load balancer. `NodePort` and `ClusterIP` Services, to which the external load balancer routes, are automatically created.
-
 + [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname):
 
   + Maps the Service to the contents of the `externalName` field (e.g. `foo.bar.example.com`), by returning a `CNAME` record with its value. No proxying of any kind is set up.
-
 + (You can also use [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) to expose your Service. Ingress is not a Service type, but it **acts as the entry point for your cluster**. It lets you consolidate your routing rules into a single resource as it can expose multiple services under the same IP address.)
 
 </details>
 
 <details>
 <summary>NetworkPolicy</summary>
-+ Reference: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+
+
+  + Reference: https://kubernetes.io/docs/concepts/services-networking/network-policies/
 + Usage:
 
   + control traffic flow at the IP address or port level (OSI layer 3 or 4)
@@ -786,11 +787,9 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
   + a pod is non-isolated for egress; all outbound connections are allowed
   + a pod is non-isolated for ingress; all inbound connections are allowed
-
 + Can modify default strategy
 
   + https://kubernetes.io/docs/concepts/services-networking/network-policies/#default-policies
-
 + **Mandatory Fields**
 
   + `spec`, `podSelector`, `policyTypes`, `ingress`, `egress`
@@ -799,9 +798,9 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Volume and Storage Objects</summary>
-+ Persistent Volumes
 
-  + PV:
+
+  + Persistent Volumes (PV):
 
     + A piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/).
 
