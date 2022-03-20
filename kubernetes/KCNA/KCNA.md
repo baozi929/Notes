@@ -101,9 +101,9 @@
         # start a single instance of nginx
         kubectl create deployment nginx --image=nginx
         # create a Job which prints "Hello World"
-        kubectl create job hello --image=busybox -- echo "Hello World"
+        kubectl create job hello --image=busybox -+ echo "Hello World"
         # create a CronJob that prints "Hello World" every minute
-        kubectl create cronjob hello --image=busybox   --schedule="*/1 * * * *" -- echo "Hello World"
+        kubectl create cronjob hello --image=busybox   --schedule="*/1 * * * *" -+ echo "Hello World"
         ```
 
     + Apply a configuration to a resource by file name or stdin. The resource name must be specified. This resource will **be created if it doesn't exist yet**.
@@ -113,7 +113,7 @@
       + ```bash
         # Apply the configuration in pod.json to a pod
         kubectl apply -f ./pod.json
-        # Apply resources from a directory containing kustomization.yaml - e.g. dir/kustomization.yaml
+        # Apply resources from a directory containing kustomization.yaml + e.g. dir/kustomization.yaml
         kubectl apply -k dir/
         # Apply the JSON passed into stdin to a pod
         cat pod.json | kubectl apply -f -
@@ -121,7 +121,7 @@
 
     + Create and run **a particular image** in a pod
 
-      + Usage: `kubectl run NAME --image=image [--env="key=value"] [--port=port] [--dry-run=server|client] [--overrides=inline-json] [--command] -- [COMMAND] [args...]`
+      + Usage: `kubectl run NAME --image=image [--env="key=value"] [--port=port] [--dry-run=server|client] [--overrides=inline-json] [--command] -+ [COMMAND] [args...]`
 
       + ```bash
         # Start a nginx pod
@@ -376,23 +376,30 @@
   + Vendors package Kubernetes into a distribution and even offer commercial support
     + [Rancher](https://rancher.com/), [k3s](https://k3s.io/), [OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift), [VMWare Tanzu](https://tanzu.vmware.com/tanzu)
   + Consume Kubernetes from a cloud provider:
-    - [Amazon (EKS)](https://aws.amazon.com/eks/), [Google (GKE)](https://cloud.google.com/kubernetes-engine), [Microsoft (AKS)](https://azure.microsoft.com/en-us/services/kubernetes-service), [DigitalOcean (DOKS)](https://www.digitalocean.com/products/kubernetes/)
+    + [Amazon (EKS)](https://aws.amazon.com/eks/), [Google (GKE)](https://cloud.google.com/kubernetes-engine), [Microsoft (AKS)](https://azure.microsoft.com/en-us/services/kubernetes-service), [DigitalOcean (DOKS)](https://www.digitalocean.com/products/kubernetes/)
 + Access control:
   + Authentication:
     + With a digital signed certificate ([X.509](https://en.wikipedia.org/wiki/X.509)) or with an external identity management system.
+    + Static Token File
+    + Bootstrap Tokens
     + [Service Accounts](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/) can be used to authenticate technical users.
-
-  + Authorization:
+    + OpenID Connect Tokens
+    + Webhook Token Authentication
+    + Authenticating Proxy
+  + Authorization: https://kubernetes.io/docs/reference/access-authn-authz/authorization/
     + In Kubernetes this can be done with [Role Based Access Control (RBAC)](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
-
+    + **Node**
+    + **ABAC**
+    + **Webhook**
   + Admission control:
     + [Admission controllers](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/) can be used to modify or validate the request
     + Tools like the [Open Policy Agent](https://www.openpolicyagent.org/) can be used to manage admission control externally
-
 + Container runtimes: [containerd](https://containerd.io/), [CRI-O](https://cri-o.io/), Docker (will be removed in Kubernetes 1.23)
-+ Security containers: [gvisor](https://github.com/google/gvisor), [Kata Containers](https://katacontainers.io/)
++ CRI runtimes
+  + [cri-o](https://github.com/cri-o/cri-o), [rktlet](https://github.com/kubernetes-retired/rktlet), [frakti](https://github.com/kubernetes/frakti), [cri-containerd](https://github.com/containerd/cri), [singularity-cri](https://github.com/sylabs/singularity-cri)
++ Security containers: [gvisor](https://github.com/google/gvisor) (runtime: runsc), [Kata Containers](https://katacontainers.io/)
 + Network vendors: [Project Calico](https://www.tigera.io/project-calico/), [Weave](https://www.weave.works/oss/net/), [Cilium](https://cilium.io/)
-+ DNS serve add-on in K8S for Service Discovery: [core-dns](https://kubernetes.io/docs/tasks/administer-cluster/coredns/)
++ DNS server add-on in K8S for Service Discovery: [core-dns](https://kubernetes.io/docs/tasks/administer-cluster/coredns/)
 + Tools to interact with K8S: [kubernetes/dashboard](https://github.com/kubernetes/dashboard), [derailed/k9s](https://github.com/derailed/k9s), [Lens](https://k8slens.dev/), [VMware Tanzu Octant](https://github.com/vmware-tanzu/octant)
 + Package manager for Kubernetes: [Helm](https://helm.sh/)
 + Storage
@@ -422,19 +429,17 @@
 <details>
 <summary>Kubernetes Objects</summary>
 
++ Reference: https://kubernetes.io/docs/concepts/overview/working-with-objects/
++ **Kubernetes objects** are persistent entities in the Kubernetes system. Kubernetes uses these entities to **represent the state of your cluster**. Can be used to describe:
+  + What containerized **applications** are running (and on which nodes)
+  + The **resources** available to those applications
+  + The **policies** around how those applications behave, such as restart policies, upgrades, and fault-tolerance
 
-
-- Reference: https://kubernetes.io/docs/concepts/overview/working-with-objects/
-- **Kubernetes objects** are persistent entities in the Kubernetes system. Kubernetes uses these entities to **represent the state of your cluster**. Can be used to describe:
-  - What containerized **applications** are running (and on which nodes)
-  - The **resources** available to those applications
-  - The **policies** around how those applications behave, such as restart policies, upgrades, and fault-tolerance
-
-- Required Fields in `.yaml` file:
-  - `apiVersion` - Which version of the Kubernetes API you're using to create this object
-  - `kind` - What kind of object you want to create
-  - `metadata` - Data that helps uniquely identify the object, including a `name` string, `UID`, and optional `namespace`
-  - `spec` - What state you desire for the object
++ Required Fields in `.yaml` file:
+  + `apiVersion` + Which version of the Kubernetes API you're using to create this object
+  + `kind` + What kind of object you want to create
+  + `metadata` + Data that helps uniquely identify the object, including a `name` string, `UID`, and optional `namespace`
+  + `spec` + What state you desire for the object
 
 
 </details>
@@ -442,29 +447,27 @@
 <details>
 <summary>Pod</summary>
 
++ References: https://kubernetes.io/docs/concepts/workloads/pods/
 
++ What is Pod?
 
-- References: https://kubernetes.io/docs/concepts/workloads/pods/
+  + *Pods* are the smallest deployable units of computing that you can create and manage in Kubernetes.
+  + Pod = 1 or more containers (share storage & network resources, and a specification for how to run the containers)
 
-- What is Pod?
++ How to create Pod?
 
-  - *Pods* are the smallest deployable units of computing that you can create and manage in Kubernetes.
-  - Pod = 1 or more containers (share storage & network resources, and a specification for how to run the containers)
+  + Usually create them using workload resources such as [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) or [Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+  + If want to trace state, use the [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/) resource.
 
-- How to create Pod?
++ [PodTemplate](https://kubernetes.io/docs/concepts/workloads/pods/#pod-templates)
 
-  - Usually create them using workload resources such as [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) or [Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
-  - If want to trace state, use the [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/) resource.
+  + PodTemplates are specifications for creating Pods, and are included in workload resources such as [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/), and [DaemonSets](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/).
 
-- [PodTemplate](https://kubernetes.io/docs/concepts/workloads/pods/#pod-templates)
+  + Example: 
 
-  - PodTemplates are specifications for creating Pods, and are included in workload resources such as [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/), and [DaemonSets](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/).
+    + A simple Job with a `template` that starts one container. The container in that Pod prints a message then pauses.
 
-  - Example: 
-
-    - A simple Job with a `template` that starts one container. The container in that Pod prints a message then pauses.
-
-    - ```yaml
+    + ```yaml
       apiVersion: batch/v1
       kind: Job
       metadata:
@@ -474,7 +477,7 @@
           # This is the pod template
           spec:
             containers:
-            - name: hello
+            + name: hello
               image: busybox
               command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
             restartPolicy: OnFailure
@@ -487,7 +490,7 @@
   + Type: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#types-of-probe
     + **livenessProbe**:
       + Indicates **whether** the container is **running**
-      + If the liveness probe **fails**, the kubelet **kills the container**, and the container is subjected to its [restart policy](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy)
+      + If the liveness probe **fails**, the kubelet **kills the container**, and the container is subjected to its [restart policy](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy) (default: `Always`; `Onfailure`, `Never`)
     + **readinessProbe**:
       + Indicates **whether** the container is **ready to respond to requests**
       + If the readiness probe **fails**, the endpoints controller **removes the Pod's IP address from the endpoints of all Services that match the Pod**
@@ -506,19 +509,19 @@
 <details>
 <summary>Workload Resources</summary>
 
-- Limitations for Pod:
++ Limitations for Pod:
   + Pod is not flexible enough. For example, if a Pod is lost because a node failed, it is gone forever
-- Requirements:
++ Requirements:
   + **make sure that a defined number of Pod copies runs all the time**
-- Solution:
++ Solution:
   + Use **controller objects** to manage pods
-- Workload Objects:
-  - [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
-  - [ReplicaSet](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
-  - [StatefulSets](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/)
-  - [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
-  - [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
-  - [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)
++ Workload Objects:
+  + [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+  + [ReplicaSet](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
+  + [StatefulSets](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/)
+  + [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
+  + [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
+  + [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)
 
 
 </details>
@@ -526,18 +529,18 @@
 <details>
 <summary>ReplicaSet</summary>
 
-- A ReplicaSet ensures **a specified number of pod replicas are running** at any given time
++ A ReplicaSet ensures **a specified number of pod replicas are running** at any given time
 
-- When to use?
++ When to use?
 
-  - Use **Deployment** to manage ReplicaSets and provides declarative updates to Pods along with a lot of other useful features
-    - it's recommend to use Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don't require updates at all
+  + Use **Deployment** to manage ReplicaSets and provides declarative updates to Pods along with a lot of other useful features
+    + it's recommend to use Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don't require updates at all
 
-- ReplicaSet and HPA
++ ReplicaSet and HPA
 
-  - Example:
+  + Example:
 
-    - ```yaml
+    + ```yaml
       apiVersion: autoscaling/v1
       kind: HorizontalPodAutoscaler
       metadata:
@@ -551,37 +554,34 @@
         targetCPUUtilizationPercentage: 50
       ```
 
-
 </details>
-
-
 
 <details>
 <summary>Deployment</summary>
 
-- A *Deployment* provides **declarative updates** for [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) and [ReplicaSets](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/).
++ A *Deployment* provides **declarative updates** for [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) and [ReplicaSets](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/).
 
-- You describe a **desired state** in a Deployment, and the Deployment [Controller](https://kubernetes.io/docs/concepts/architecture/controller/) changes the actual state to the desired state at **a controlled rate**.
++ You describe a **desired state** in a Deployment, and the Deployment [Controller](https://kubernetes.io/docs/concepts/architecture/controller/) changes the actual state to the desired state at **a controlled rate**.
 
-- Usage:
++ Usage:
 
-  - Create a deployment to **rollout a ReplicaSet**
-  - Declare the new state of the Pods
-  - **Rollback** to an earlier Deployment revision
-  - ...
+  + Create a deployment to **rollout a ReplicaSet**
+  + Declare the new state of the Pods
+  + **Rollback** to an earlier Deployment revision
+  + ...
 
-- Commands:
++ Commands:
 
-  - Get related info
+  + Get related info
 
-    - ```shell
+    + ```shell
       # list Deployments with its status
       $ kubectl get deployments
       NAME               READY   UP-TO-DATE   AVAILABLE   AGE
       nginx-deployment   0/3     0            0           1s
       ```
 
-    - ```shell
+    + ```shell
       # see the Deployment rollout status
       $ kubectl rollout status deployment/nginx-deployment
       
@@ -590,28 +590,28 @@
       deployment "nginx-deployment" successfully rolled out
       ```
 
-    - ```shell
+    + ```shell
       # see the ReplicaSet (rs) created by the Deployment
       $ kubectl get rs
       NAME                          DESIRED   CURRENT   READY   AGE
       nginx-deployment-75675f5897   3         3         3       18s
       ```
 
-    - ```shell
+    + ```shell
       # Get details of your Deployment
       kubectl describe deployments
       ```
 
-  - Create a Deployment
+  + Create a Deployment
 
-    - ```shell
+    + ```shell
       # create Depoyment
       kubectl apply -f https://k8s.io/examples/controllers/nginx-deployment.yaml
       ```
   
-  - Update a Deployment
+  + Update a Deployment
 
-    - ```shell
+    + ```shell
       # update image: nginx:1.14.2 -> nginx:1.16.1
       kubectl set image deployment.v1.apps/nginx-deployment nginx=nginx:1.16.1
       kubectl set image deployment/nginx-deployment nginx=nginx:1.16.1
@@ -619,9 +619,9 @@
       kubectl edit deployment/nginx-deployment
       ```
   
-  - Rolling Back a Deployment
+  + Rolling Back a Deployment
 
-    - ```shell
+    + ```shell
       # Checking Rollout History of a Deployment
       $ kubectl rollout history deployment/nginx-deployment
       deployments "nginx-deployment"
@@ -631,253 +631,213 @@
       3           kubectl set image deployment.v1.apps/nginx-deployment nginx=nginx:1.91 --record=true
       ```
   
-    - ```shell
+    + ```shell
       # See the details of each revision
       kubectl rollout history deployment.v1.apps/nginx-deployment --revision=2
       ```
   
-    - ```shell
+    + ```shell
       # Rollback 1: to the previous version
       kubectl rollout undo deployment/nginx-deployment
       # Rollback 2: to a specific version
       kubectl rollout undo deployment/nginx-deployment --to-revision=2
       ```
   
-  - Scaling a Deployment
+  + Scaling a Deployment
   
-    - ```shell
+    + ```shell
       # scale to 10 replicas
       kubectl scale deployment/nginx-deployment --replicas=10
       # Use HPA to auto scale (based on the CPU utilization of existing Pods)
       kubectl autoscale deployment/nginx-deployment --min=10 --max=15 --cpu-percent=80
       ```
 
-
 </details>
-
-
 
 <details>
 <summary>StatefulSets</summary>
 
-- StatefulSet is the workload API object used to **manage stateful applications**.
-- Manages the deployment and scaling of a set of [Pods](https://kubernetes.io/docs/concepts/workloads/pods/), and provides guarantees about the **ordering** and **uniqueness** of these Pods.
-- When to use StatefulSets?
-  - Applications that require one or more of the following.
-    - Stable, **unique network identifiers**.
-    - Stable, persistent storage.
-    - Ordered, graceful deployment and scaling.
-    - Ordered, automated rolling updates.
-- Limitations
-  - The storage for a given Pod must either be provisioned by a [PersistentVolume Provisioner](https://github.com/kubernetes/examples/tree/master/staging/persistent-volume-provisioning/README.md) based on the requested `storage class`, or pre-provisioned by an admin.
-  - Deleting and/or scaling a StatefulSet down **will *not* delete the volumes** associated with the StatefulSet.
-  - StatefulSets currently require a [Headless Service](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services) to be responsible for the network identity of the Pods.
-  - StatefulSets do not provide any guarantees on the termination of pods when a StatefulSet is deleted. To achieve ordered and graceful termination of the pods in the StatefulSet, it is possible to scale the StatefulSet down to 0 prior to deletion.
-- Headless Service
-  - When to use?
-    - When you don't need load-balancing and a single Service IP
++ StatefulSet is the workload API object used to **manage stateful applications**.
++ Manages the deployment and scaling of a set of [Pods](https://kubernetes.io/docs/concepts/workloads/pods/), and provides guarantees about the **ordering** and **uniqueness** of these Pods.
++ When to use StatefulSets?
+  + Applications that require one or more of the following.
+    + Stable, **unique network identifiers**.
+    + Stable, **persistent storage**.
+    + Ordered, graceful deployment and scaling.
+    + Ordered, automated rolling updates.
++ Limitations
+  + The storage for a given Pod must either be provisioned by a [PersistentVolume Provisioner](https://github.com/kubernetes/examples/tree/master/staging/persistent-volume-provisioning/README.md) based on the requested `storage class`, or pre-provisioned by an admin.
+  + Deleting and/or scaling a StatefulSet down **will *not* delete the volumes** associated with the StatefulSet.
+  + StatefulSets currently require a [Headless Service](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services) to be responsible for the network identity of the Pods.
+  + StatefulSets do not provide any guarantees on the termination of pods when a StatefulSet is deleted. To achieve ordered and graceful termination of the pods in the StatefulSet, it is possible to scale the StatefulSet down to 0 prior to deletion.
++ Headless Service
+  + When to use?
+    + When you don't need load-balancing and a single Service IP
 
-  - spec.clusterIP = None
-- Components (example in https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components)
+  + spec.clusterIP = None
++ Components (example in https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components)
 
-  - Headless service `nginx` used to control the network domain
-  - StatefulSet has a `spec` that indicates N replicas of `nginx` container will be launched in unique Pods
-  - `volumeClaimTemplates` will provide stable storage using [PersistentVolumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) provisioned by a PersistentVolume Provisioner
+  + Headless service `nginx` used to control the network domain
+  + StatefulSet has a `spec` that indicates N replicas of `nginx` container will be launched in unique Pods
+  + `volumeClaimTemplates` will provide stable storage using [PersistentVolumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) provisioned by a PersistentVolume Provisioner
 
-- Deployment and Scaling Guarantees (https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#deployment-and-scaling-guarantees)
++ Deployment and Scaling Guarantees (https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#deployment-and-scaling-guarantees)
 
-  - For a StatefulSet with N replicas, Pods will be created in order from {0, ..., N-1}
-  - When Pods are being deleted, they are terminated in reverse order, from {N-1..0}
-  - Before a **scaling** operation is applied to a Pod, all of its **predecessors** must be **Running and Ready**
-  - Before a Pod is **terminated**, all of its **successors** must be **completely shutdown**
-
+  + For a StatefulSet with N replicas, Pods will be created in order from {0, ..., N-1}
+  + When Pods are being deleted, they are terminated in reverse order, from {N-1..0}
+  + Before a **scaling** operation is applied to a Pod, all of its **predecessors** must be **Running and Ready**
+  + Before a Pod is **terminated**, all of its **successors** must be **completely shutdown**
 
 </details>
-
-
 
 <details>
 <summary>DaemonSet</summary>
 
-- A *DaemonSet* ensures that all (or some) Nodes run a copy of a Pod
-- Typical uses of a DaemonSet:
-  - running a **cluster storage** daemon on every node
-  - running a **logs collection** daemon on every node
-  - running a **node monitoring** daemon on every node
++ A *DaemonSet* ensures that all (or some) Nodes run a copy of a Pod
++ Typical uses of a DaemonSet:
+  + running a **cluster storage** daemon on every node
+  + running a **logs collection** daemon on every node
+  + running a **node monitoring** daemon on every node
 
 </details>
-
-
 
 <details>
 <summary>Jobs</summary>
 
-- A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate.
++ A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate.
 
 </details>
-
-
 
 <details>
 <summary>Cronjob</summary>
 
-- A *CronJob* creates [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/) on a repeating schedule.
-- One CronJob object is like one line of a *crontab* (cron table) file. It runs a job periodically on a given schedule, written in [Cron](https://en.wikipedia.org/wiki/Cron) format.
++ A *CronJob* creates [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/) on a repeating schedule.
++ One CronJob object is like one line of a *crontab* (cron table) file. It runs a job periodically on a given schedule, written in [Cron](https://en.wikipedia.org/wiki/Cron) format.
 
 </details>
-
-
 
 securityContext: set **user & group settings**, as well as **kernel capabilities**, https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 
 Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 
-
-
 <details>
 <summary>Networking Objects: Services</summary>
++ Service:
 
+  + An abstract way to **expose** an application running on a set of [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) **as a network service**.
 
-- Service:
++ Fact -> Requirement -> Service
 
-  - An abstract way to **expose** an application running on a set of [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) **as a network service**.
+  + Fact:
 
-- Fact -> Requirement -> Service
+    + Each Pod gets its own IP address
+    + But in a Deployment, the set of Pods running in one moment in time could be different from the set of Pods running that application a moment later.
 
-  - Fact:
+  + Problem:
 
-    - Each Pod gets its own IP address
-    - But in a Deployment, the set of Pods running in one moment in time could be different from the set of Pods running that application a moment later.
+    + If some set of Pods (call them "backends") provides functionality to other Pods (call them "frontends") inside your cluster, **how do the frontends find out and keep track of which IP address to connect to, so that the frontend can use the backend part of the workload?**
 
-  - Problem:
++ Service in Kubernetes:
 
-    - If some set of Pods (call them "backends") provides functionality to other Pods (call them "frontends") inside your cluster, **how do the frontends find out and keep track of which IP address to connect to, so that the frontend can use the backend part of the workload?**
-
-- Service in Kubernetes:
-
-  - A Service is an abstraction which defines **a logical set of Pods and a policy** by which to access them
-
+  + A Service is an abstraction which defines **a logical set of Pods and a policy** by which to access them
 
 </details>
-
-
-
-
 
 <details>
 <summary>Service Discovery</summary>
++ Reference: https://kubernetes.io/docs/concepts/services-networking/service/#discovering-services
++ Kubernetes supports 2 primary modes of finding a Service
 
-
-- Reference: https://kubernetes.io/docs/concepts/services-networking/service/#discovering-services
-- Kubernetes supports 2 primary modes of finding a Service
-
-  - environment variables
-  - DNS
-
+  + environment variables
+  + DNS
 
 </details>
-
-
 
 <details>
 <summary>Service Types</summary>
++ Reference: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
++ `ClusterIP`:
+  + Exposes the Service on a cluster-internal IP. Choosing this value makes the Service **only reachable from within the cluster**. This is the default `ServiceType`.
 
++ [`NodePort`](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport):
 
-- Reference: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
-- `ClusterIP`:
+  + Exposes the Service on each Node's IP at a static port (the `NodePort`). A `ClusterIP` Service, to which the `NodePort` Service routes, is automatically created. You'll be able to contact the `NodePort` Service, from outside the cluster, by requesting `<NodeIP>:<NodePort>`.
 
-  - Exposes the Service on a cluster-internal IP. Choosing this value makes the Service **only reachable from within the cluster**. This is the default `ServiceType`.
++ [`LoadBalancer`](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer):
 
-- [`NodePort`](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport):
+  + Exposes the Service externally using a cloud provider's load balancer. `NodePort` and `ClusterIP` Services, to which the external load balancer routes, are automatically created.
 
-  - Exposes the Service on each Node's IP at a static port (the `NodePort`). A `ClusterIP` Service, to which the `NodePort` Service routes, is automatically created. You'll be able to contact the `NodePort` Service, from outside the cluster, by requesting `<NodeIP>:<NodePort>`.
++ [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname):
 
-- [`LoadBalancer`](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer):
+  + Maps the Service to the contents of the `externalName` field (e.g. `foo.bar.example.com`), by returning a `CNAME` record with its value. No proxying of any kind is set up.
 
-  - Exposes the Service externally using a cloud provider's load balancer. `NodePort` and `ClusterIP` Services, to which the external load balancer routes, are automatically created.
-
-- [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname):
-
-  - Maps the Service to the contents of the `externalName` field (e.g. `foo.bar.example.com`), by returning a `CNAME` record with its value. No proxying of any kind is set up.
-
-- (You can also use [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) to expose your Service. Ingress is not a Service type, but it **acts as the entry point for your cluster**. It lets you consolidate your routing rules into a single resource as it can expose multiple services under the same IP address.)
++ (You can also use [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) to expose your Service. Ingress is not a Service type, but it **acts as the entry point for your cluster**. It lets you consolidate your routing rules into a single resource as it can expose multiple services under the same IP address.)
 
 </details>
-
-
-
-
 
 <details>
 <summary>NetworkPolicy</summary>
++ Reference: https://kubernetes.io/docs/concepts/services-networking/network-policies/
++ Usage:
 
+  + control traffic flow at the IP address or port level (OSI layer 3 or 4)
 
-- Reference: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-- Usage:
++ Default behavior of Pod:
 
-  - control traffic flow at the IP address or port level (OSI layer 3 or 4)
+  + a pod is non-isolated for egress; all outbound connections are allowed
+  + a pod is non-isolated for ingress; all inbound connections are allowed
 
-- Default behavior of Pod:
++ Can modify default strategy
 
-  - a pod is non-isolated for egress; all outbound connections are allowed
-  - a pod is non-isolated for ingress; all inbound connections are allowed
+  + https://kubernetes.io/docs/concepts/services-networking/network-policies/#default-policies
 
-- Can modify default strategy
++ **Mandatory Fields**
 
-  - https://kubernetes.io/docs/concepts/services-networking/network-policies/#default-policies
-
-- **Mandatory Fields**
-
-  - `spec`, `podSelector`, `policyTypes`, `ingress`, `egress`
-
+  + `spec`, `podSelector`, `policyTypes`, `ingress`, `egress`
 
 </details>
 
-
-
 <details>
 <summary>Volume and Storage Objects</summary>
++ Persistent Volumes
 
+  + PV:
 
-- Persistent Volumes
+    + A piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/).
 
-  - PV:
+  + PVC:
 
-    - A piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/).
+    + A request for storage by a user.
 
-  - PVC:
+  + Provisioning PV:
 
-    - A request for storage by a user.
+    + Static: A cluster administrator creates a number of PVs with the details of the real storage
+    + Dynamic:
 
-  - Provisioning PV:
+      + When none of the static PVs the administrator created match a user's PersistentVolumeClaim, the cluster may try to dynamically provision a volume specially for the PVC
+      + This provisioning is based on **StorageClasses**
 
-    - Static: A cluster administrator creates a number of PVs with the details of the real storage
-    - Dynamic:
+  + Access modes:
 
-      - When none of the static PVs the administrator created match a user's PersistentVolumeClaim, the cluster may try to dynamically provision a volume specially for the PVC
-      - This provisioning is based on **StorageClasses**
+    + ReadWriteOnce
+    + ReadOnlyMany
+    + ReadWriteMany
+    + ReadWriteOncePod
 
-  - Access modes:
+  + Reclaim Policy
+    + Retain: manual reclamation
+    + Recycle: basic scrub (`rm -rf /thevolume/*`)
+    + Delete: associated storage asset such as AWS EBS, GCE PD, Azure Disk, or OpenStack Cinder volume is deleted
+  + Node Affinity
 
-    - ReadWriteOnce
-    - ReadOnlyMany
-    - ReadWriteMany
-    - ReadWriteOncePod
+    + A PV can specify node affinity to **define constraints that limit what nodes this volume can be accessed from**
 
-  - Reclaim Policy
-    - Retain -- manual reclamation
-    - Recycle -- basic scrub (`rm -rf /thevolume/*`)
-    - Delete -- associated storage asset such as AWS EBS, GCE PD, Azure Disk, or OpenStack Cinder volume is deleted
-  - Node Affinity
++ Ephemeral Volumes
 
-    - A PV can specify node affinity to **define constraints that limit what nodes this volume can be accessed from**
-
-- Ephemeral Volumes
-
-  - [emptyDir](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir): empty at Pod startup, with storage coming locally from the kubelet base directory (usually the root disk) or RAM
-  - [configMap](https://kubernetes.io/docs/concepts/storage/volumes/#configmap), [downwardAPI](https://kubernetes.io/docs/concepts/storage/volumes/#downwardapi), [secret](https://kubernetes.io/docs/concepts/storage/volumes/#secret): inject different kinds of Kubernetes data into a Pod
-  - [CSI ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#csi-ephemeral-volumes): similar to the previous volume kinds, but provided by special [CSI drivers](https://github.com/container-storage-interface/spec/blob/master/spec.md) which specifically [support this feature](https://kubernetes-csi.github.io/docs/drivers.html)
-  - [generic ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes), which can be provided by all storage drivers that also support persistent volumes
+  + [emptyDir](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir): empty at Pod startup, with storage coming locally from the kubelet base directory (usually the root disk) or RAM
+  + [configMap](https://kubernetes.io/docs/concepts/storage/volumes/#configmap), [downwardAPI](https://kubernetes.io/docs/concepts/storage/volumes/#downwardapi), [secret](https://kubernetes.io/docs/concepts/storage/volumes/#secret): inject different kinds of Kubernetes data into a Pod
+  + [CSI ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#csi-ephemeral-volumes): similar to the previous volume kinds, but provided by special [CSI drivers](https://github.com/container-storage-interface/spec/blob/master/spec.md) which specifically [support this feature](https://kubernetes-csi.github.io/docs/drivers.html)
+  + [generic ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes), which can be provided by all storage drivers that also support persistent volumes
 
 
 </details>
@@ -885,22 +845,16 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 <details>
 <summary>Configuration Objects</summary>
 
++ ConfigMap
+  + A ConfigMap is an API object used to store non-confidential data in **key-value pairs**.
+  + Motivation: Use a ConfigMap for **setting configuration data separately from application code**.
+  + How to use?
+    + mounts a ConfigMap in a volume
+    + ..
 
-
-- ConfigMap
-  - A ConfigMap is an API object used to store non-confidential data in **key-value pairs**.
-  - Motivation: Use a ConfigMap for **setting configuration data separately from application code**.
-  - How to use?
-    - mounts a ConfigMap in a volume
-    - ..
-
-- Secret (ConfigMap with base64 encoding)
++ Secret (ConfigMap with base64 encoding)
 
 </details>
-
-
-
-
 
 
 
@@ -923,30 +877,38 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
     + assigns Pods to Nodes (based on different properties like CPU and memory)
   + kube-controller-manager:
     + contains different **non-terminating control loops** that **manage the state of the cluster**
+    + Some types of controllers:
+      + Node controller: Responsible for noticing and responding when nodes go down.
+      + Job controller: Watches for Job objects that represent one-off tasks, then creates Pods to run those tasks to completion.
+      + Endpoints controller: Populates the Endpoints object (that is, joins Services & Pods).
+      + Service Account & Token controllers: Create default accounts and API access tokens for new namespaces.
+  + cloud-controller-manager:
+    + The following controllers can have cloud provider dependencies:
+      + Node controller: For checking the cloud provider to determine if a node has been deleted in the cloud after it stops responding
+      + Route controller: For setting up routes in the underlying cloud infrastructure
+      + Service controller: For creating, updating and deleting cloud provider load balancers
 
-- **Worker nodes**: run applications
-  - container runtime
-    - responsible for running the containers on the worker node
-  - kubelet
-    - runs on every worker node in cluster
-    - talks to the api-server and the container runtime to **handle the final stage of starting containers**
-  - kube-proxy:
-    - handles inside and outside communication of your cluster
++ **Worker nodes**: run applications
+  + container runtime
+    + responsible for running the containers on the worker node
+  + kubelet
+    + An agent that runs on every worker node in cluster
+    + talks to the api-server and the container runtime to **handle the final stage of starting containers**
+  + kube-proxy:
+    + handles inside and outside communication of your cluster
 
 </details>
 
 <details>
 <summary>Kubernetes Namespace</summary>
-
-
-- **Kubernetes namespace** can be used to:
++ **Kubernetes namespace** can be used to:
   + **divide a cluster to multiple virtual clusters** (used for multi-tenancy when multiple teams share a cluster)
-- Default namespace in Kubernetes
++ Default namespace in Kubernetes
 
-  - **default**: The default namespace for objects with no other namespace
-  - **kube-system**: The namespace for objects created by the Kubernetes system
-  - **kube-public**: This namespace is created automatically and is readable by all users (including those not authenticated)
-  - **kube-node-lease**: This namespace holds [Lease](https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/lease-v1/) objects associated with each node.
+  + **default**: The default namespace for objects with no other namespace
+  + **kube-system**: The namespace for objects created by the Kubernetes system
+  + **kube-public**: This namespace is created automatically and is readable by all users (including those not authenticated)
+  + **kube-node-lease**: This namespace holds [Lease](https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/lease-v1/) objects associated with each node.
 
 </details>
 
@@ -956,11 +918,9 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>What is Kubernetes API</summary>
-
-
-- Important component to **communication with the cluster**
-- Kubernetes API is implemented as a **RESTful** interface that is exposed over **HTTPS**
-- What user can do with the API:
++ Important component to **communication with the cluster**
++ Kubernetes API is implemented as a **RESTful** interface that is exposed over **HTTPS**
++ What user can do with the API:
   + **create**, **modify**, **delete** or **retrieve resources** that reside in Kubernetes
 
 </details>
@@ -993,11 +953,9 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Running conatiners on Kubernetes</summary>
++ Define **Pods** as the smallest compute unit
 
-
-- Define **Pods** as the smallest compute unit
-
-- When create a Pod in Kubernetes, several components are involved
++ When create a Pod in Kubernetes, several components are involved
 
   + Example with docker
 
@@ -1017,21 +975,22 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>CRI</summary>
-- CRI allows using other container runtime than Docker
-  + https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/
-- Container Runtimes available with CRI: containerd, CRI-O, Docker
 
-  - containerd and CRI-O provide a runtime that **only contains the absolutely essentials to run containers**
+  + CRI allows using other container runtime than Docker
+    + https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/
++ Container Runtimes available with CRI: containerd, CRI-O, Docker
+  + containerd and CRI-O provide a runtime that **only contains the absolutely essentials to run containers**
 
 </details>
 
 <details>
 <summary>Container runtime sandboxing tools solve security problems</summary>
-- Risk comes from sharing kernels between containers
-- [gvisor](https://github.com/google/gvisor)
-  + provides an application kernel that sits between the containerized process and the host kernel
-- [Kata Containers](https://katacontainers.io/)
-  + secure runtime that provides a lightweight virtual machine, but behaves like a container
+
++ Risk comes from sharing kernels between containers
++ [gvisor](https://github.com/google/gvisor)
+  + provides **an application kernel** that sits between the containerized process and the host kernel
++ [Kata Containers](https://katacontainers.io/)
+  + secure runtime that provides **a lightweight virtual machine**, but behaves like a container
 
 </details>
 
@@ -1041,15 +1000,13 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>kube-scheduler</summary>
++ choose the right (worker) node to run a containerized workload on
 
+  + but not responsible for starting the workload. Pod is started by **the kubelet and the container runtime**
++ How it works?
 
-- choose the right (worker) node to run a containerized workload on
-
-  - but not responsible for starting the workload. Pod is started by **the kubelet and the container runtime**
-- How it works?
-
-  - user gives information about the application requirements
-  - scheduler will filter all nodes that fit the requirements
+  + user gives information about the application requirements
+  + scheduler will filter all nodes that fit the requirements
 
 </details>
 
@@ -1061,14 +1018,12 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Visual machines VS Containers</summary>
-
-
-- Virtual machines
++ Virtual machines
   + Pros:
     + **Full isolation security**
   + Cons:
     + Need a whole operating system including the kernel -> Some overhead
-- Containers
++ Containers
   + Pros:
 
     + **much more efficient** than spinning up a lot of virtual machines
@@ -1079,19 +1034,17 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Isolate processes</summary>
++ chroot
 
+  + used to **isolate a process from the root filesystem** (basically "hide" the files from the process and **simulate a new root directory**)
++ namespaces
 
-- chroot
+  + used to **isolate various resources**
 
-  - used to **isolate a process from the root filesystem** (basically "hide" the files from the process and **simulate a new root directory**)
-- namespaces
+    + pid, net, mnt, ipc, usr, uts, cgroup, time
++ cgroups
 
-  - used to **isolate various resources**
-
-    - pid, net, mnt, ipc, usr, uts, cgroup, time
-- cgroups
-
-  - used to
+  + used to
     + **organize processes in hierarchical groups**
     + **assign them resources** like memory and CPU
 
@@ -1099,19 +1052,17 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Run containers</summary>
++ OCI [runtime-spec](https://github.com/opencontainers/runtime-spec)
 
+  + [runC](https://github.com/opencontainers/runc) is a container runtime reference implementation
++ Tools to run container: Docker or [podman](https://podman.io/)
 
-- OCI [runtime-spec](https://github.com/opencontainers/runtime-spec)
+  + commands:
 
-  - [runC](https://github.com/opencontainers/runc) is a container runtime reference implementation
-- Tools to run container: Docker or [podman](https://podman.io/)
+    + pull images: `docker pull nginx`
+    + check local images: `docker images`
 
-  - commands:
-
-    - pull images: `docker pull nginx`
-    - check local images: `docker images`
-
-    - create container and run: `docker run --detach --publish-all nginx:latest`
+    + create container and run: `docker run --detach --publish-all nginx:latest`
 
       + --detach, -d: Run container in background and print container ID
 
@@ -1119,66 +1070,61 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
       + --publish-all, -P: Publish all exposed ports to random ports
 
-    - check containers: `docker ps`
+    + check containers: `docker ps`
 
-    - stop container: `docker stop CONTAINER_ID`
+    + stop container: `docker stop CONTAINER_ID`
 
 </details>
 
 <details>
 <summary>Build container images</summary>
++ Tools to build image: [buildah](https://buildah.io/) or [kaniko](https://github.com/GoogleContainerTools/kaniko)
+
++ OCI [image-spec](https://github.com/opencontainers/image-spec)
+
++ DockerFile: A text document that contains all the commands a user could call on the command line to assemble an image
 
 
-- Tools to build image: [buildah](https://buildah.io/) or [kaniko](https://github.com/GoogleContainerTools/kaniko)
-
-- OCI [image-spec](https://github.com/opencontainers/image-spec)
-
-- Docker: A text document that contains all the commands a user could call on the command line to assemble an image
+  + commands:
 
 
-  - commands:
+    + Command to build image: 
 
 
-    - Command to build image: 
-
-
-      - ```shell
+      + ```shell
         docker build -t my-python-image -f Dockerfile
         ```
 
+      + --tag, -t: can specify a name tag for your image, like **name:tag**
 
-        - --tag, -t: can specify a name tag for your image, like **name:tag**
-        - -f: specify path of Dockerfile
+      + -f: specify path of Dockerfile
+
+    + Use container registry to distribute images:
 
 
-    - Use container registry to distribute images:
-    
       + ```shell
         docker push my-registry.com/my-python-image
         docker pull my-registry.com/my-python-image
         ```
 
+
 </details>
 
 <details>
 <summary>Microservice architecture</summary>
++ Basis of microservice architecture:
 
-
-- Basis of microservice architecture:
-
-  - a lot of small containers that are **loosely coupled, isolated and independent**
+  + a lot of small containers that are **loosely coupled, isolated and independent**
     + small containers are **self-contained small parts of business logic** that are part of a bigger application
 
 </details>
 
 <details>
 <summary>Container orchestration systems</summary>
++ Consist of:
 
-
-- Consist of:
-
-  - a **control plane** that is responsible for the management of the containers 
-  - **worker nodes** that actually host the containers
+  + a **control plane** that is responsible for the management of the containers 
+  + **worker nodes** that actually host the containers
 
 </details>
 
@@ -1196,17 +1142,15 @@ Manage resources: https://kubernetes.io/docs/concepts/configuration/manage-resou
 
 <details>
 <summary>Characteristics of containers and security risks</summary>
++ Characteristics of containers
 
+  + Share the same kernel -> risky for the whole system
 
-- Characteristics of containers
+    + example: kill processes, modify the host network by creating routing rules
++ Security risks:
 
-  - Share the same kernel -> risky for the whole system
-
-    - example: kill processes, modify the host network by creating routing rules
-- Security risks:
-
-  - Execute processes with **too many privileges** (especially start processes as **root** or **administrator**)
-  - Use of public images (Popular public image registries: [Docker Hub](https://hub.docker.com/), [Quay](https://quay.io/))
+  + Execute processes with **too many privileges** (especially start processes as **root** or **administrator**)
+  + Use of public images (Popular public image registries: [Docker Hub](https://hub.docker.com/), [Quay](https://quay.io/))
 
 </details>
 
@@ -1218,72 +1162,64 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>Network in containers</summary>
++ Network namespace allows each container has it's own **unique IP address**
 
-
-- Network namespace allows each container has it's own **unique IP address**
-
-  - -> **multiple applications can open the same network port** (example: can have multiple contianerized web server with port 8080)
-- Map a port form the container to a port form the host system -> make **application accessible from ouside the host system**
-- Use an **overly network** -> containers across host **communicate with each other**
+  + -> **multiple applications can open the same network port** (example: can have multiple containerized web server with port 8080)
++ Map a port form the container to a port form the host system -> make **application accessible from outside the host system**
++ Use an **overly network** -> containers across host **communicate with each other**
 
 </details>
 
 <details>
 <summary>CNI</summary>
-
-
-- [Container Network Interface (CNI)](https://github.com/containernetworking/cni)
-- What is CNI:
++ [Container Network Interface (CNI)](https://github.com/containernetworking/cni)
++ What is CNI:
   + A standard that can be used to **write or configure network plugins**
-- Benefits form CNI:
++ Benefits form CNI:
   + easy to swap out different plugins in various container orchestration platforms
 
 </details>
 
 <details>
 <summary>Service Discovery and DNS</summary>
++ Manage servers in data centers
 
+  + Traditional ways:
 
-- Manage servers in data centers
+    + administrator manually maintain large lists of servers, their host names, IP addresses, and purposes
+  + Solution in container orchestration platforms:
 
-  - Traditional ways:
+    + Automatically put all the information in a **Service Registry**
+    + Service Discovery:
 
-    - administrator manually maintain large lists of servers, their host names, IP addresses, and purposes
-  - Solution in container orchestration platforms:
+      + Service discovery is **the process of automatically detecting devices and services on a network**.
+      + Most used approaches:
 
-    - Automatically put all the information in a **Service Registry**
-    - Service Discovery:
+        + DNS:
 
-      - Service discovery is **the process of automatically detecting devices and services on a network**.
-      - Most used approaches:
+          + DNS server have a **service API**, can be used to **register new services** as they are created
+        + K-V Store:
 
-        - DNS:
-
-          - DNS server have a **service API**, can be used to **register new services** as they are created
-        - K-V Store:
-
-          - Using a strongly consistent datastore **especially to store information about services**
-          - Popular choices of Key-Value-Store database to store information about services: [etcd](https://github.com/coreos/etcd/), [Consul](https://www.consul.io/) or [Apache Zookeeper](https://zookeeper.apache.org/)
+          + Using a strongly consistent datastore **especially to store information about services**
+          + Popular choices of Key-Value-Store database to store information about services: [etcd](https://github.com/coreos/etcd/), [Consul](https://www.consul.io/) or [Apache Zookeeper](https://zookeeper.apache.org/)
 
 </details>
 
 <details>
 <summary>Networking in Kubernetes</summary>
++ Requirements:
 
+  + **All pods can communicate with each other across nodes.**
+  + **All nodes can communicate with all pods.**
 
-- Requirements:
+  + **No Network Address Translation (NAT)**
++ Network problem need to be solved
 
-  - **All pods can communicate with each other across nodes.**
-  - **All nodes can communicate with all pods.**
-
-  - **No Network Address Translation (NAT)**
-- Network problem need to be solved
-
-  - **Container-to-Container communications**: solved by the Pod concept
-  - **Pod-to-Pod communications**: solved by overlay network
-  - **Pod-to-Service communications**: implemented by kube-proxy and packer filter on the node
-  - **External-to-Service communications**: implemented by kube-proxy and packer filter on the node
-- Network in Kubernetes
+  + **Container-to-Container communications**: solved by the Pod concept
+  + **Pod-to-Pod communications**: solved by overlay network
+  + **Pod-to-Service communications**: implemented by kube-proxy and packer filter on the node
+  + **External-to-Service communications**: implemented by kube-proxy and packer filter on the node
++ Network in Kubernetes
   + every **Pod** gets its **own IP address**
 
   + most Kubernetes setups include a **DNS server** add-on ([core-dns](https://kubernetes.io/docs/tasks/administer-cluster/coredns/))
@@ -1297,65 +1233,59 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>Functions required when container communicate with each other</summary>
-
-
-- monitoring
-- access control
-- encryption of the networking traffic
++ monitoring
++ access control
++ encryption of the networking traffic
 
 </details>
 
 <details>
 <summary>Solution 1: Proxy</summary>
++ Start **a second container** to manage network traffic instead of implement all the functionalities to your app
++ **proxy**, sits between a client and server, can modify or filter network traffic
 
-
-- Start **a second container** to manage network traffic instead of implement all the functionalities to your app
-- **proxy**, sits between a client and server, can modify or filter network traffic
-
-  - Proxy to manage network traffic: [nginx](https://www.nginx.com/), [haproxy](http://www.haproxy.org/) or [envoy](https://www.envoyproxy.io/)
+  + Proxy to manage network traffic: [nginx](https://www.nginx.com/), [haproxy](http://www.haproxy.org/) or [envoy](https://www.envoyproxy.io/)
 
 </details>
 
 <details>
 <summary>Solution 2: Service mesh</summary>
-
-
-- What service mash does?
++ What service mash does?
 
   + **adds a proxy server to *every* container** that you have in your architecture
 
-- Example:
++ Example:
 
 
-  - Istio Architecture:
+    + Istio Architecture:
 
-    + <p align="center">
-        <img width="600" src="./figures/chap3_IstioArchitecture.png">
-      </p>
+      + <p align="center">
+          <img width="600" src="./figures/chap3_IstioArchitecture.png">
+        </p>
 
-    + Includes:
+      + Includes:
 
-      + data plane: formed by the proxies in a service
-        + implement networking rules
+        + data plane: formed by the proxies in a service
+          + implement networking rules
 
-        + shape the traffic flow
-      + control plane: manage the rules, such as:
+          + shape the traffic flow
+        + control plane: manage the rules, such as:
 
-        + how traffic flows from service A to service B
-        + what configuration should be applied to the proxies
+          + how traffic flows from service A to service B
+          + what configuration should be applied to the proxies
 
-- popular service mesh: [istio](https://istio.io/), [linkerd](https://linkerd.io/)
+
+
++ popular service mesh: [istio](https://istio.io/), [linkerd](https://linkerd.io/)
 
 </details>
 
 <details>
 <summary>SMI Project</summary>
++ Standard for service mesh: [Service Mesh Interface (SMI)](https://smi-spec.io/)
 
-
-- Standard for service mesh: [Service Mesh Interface (SMI)](https://smi-spec.io/)
-
-  - aims at defining a specification on **how a service mesh from various providers can be implemented**
-  - goal:
+  + aims at defining a specification on **how a service mesh from various providers can be implemented**
+  + goal:
 
     + standardize the end user experience for service meshes
     + a standard for the providers that want to **integrate with Kubernetes**
@@ -1368,39 +1298,39 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>Storage in containers</summary>
++ By default: ephemeral
+
++ Persist data:
 
 
-- By default: ephemeral
-
-- Persist data:
+    + How: Use **volumes**
 
 
-  - How: Use **volumes**
 
-  - Example: 
-
-
-    - Data shared between 2 containers on the same host
+    + Example: 
 
 
-      - <p align="center">
-          <img width="360" src="./figures/chap3_DataIsSharedBetween2ContainersOnTheSameHost.png">
-        </p>
-    
-    - Data shared between containers on different hosts
+      + Data shared between 2 containers on the same host
 
 
-      - <p align="center">
-          <img width="500" src="./figures/chap3_Storage.png">
-        </p>
+        + <p align="center">
+                <img width="360" src="./figures/chap3_DataIsSharedBetween2ContainersOnTheSameHost.png">
+              </p>
+
+      + Data shared between containers on different hosts
+
+        + <p align="center">
+                <img width="500" src="./figures/chap3_Storage.png">
+              </p>
+
+
+
 
 </details>
 
 <details>
 <summary>CSI</summary>
-
-
-- Container Storage Interface (CSI): https://github.com/container-storage-interface/spec
++ Container Storage Interface (CSI): https://github.com/container-storage-interface/spec
   + offer a **uniform interface** which allows attaching different storage systems no matter if it’s **cloud or on-premises** storage
 
 </details>
@@ -1414,23 +1344,21 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 <details>
 <summary>Characteristics of Cloud Native Architecture</summary>
 
-- High level of Automation
-- Self-healing
-- Scalable
-- Cost-efficient
-- Easy-to-maintain
-- Secure by default
++ High level of Automation
++ Self-healing
++ Scalable
++ Cost-efficient
++ Easy-to-maintain
++ Secure by default
 
 </details>
 
 <details>
 <summary>The twelve-factor app</summary>
++ What is The Twelve-Factor App?
 
-
-- What is The Twelve-Factor App?
-
-  - guideline for **developing cloud native applications**
-- Reference: [The Twelve-Factor App](https://12factor.net/)
+  + guideline for **developing cloud native applications**
++ Reference: [The Twelve-Factor App](https://12factor.net/)
 
 </details>
 
@@ -1438,63 +1366,47 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>Horizontal scaling VS Vertical scaling</summary>
++ Horizontal scaling
 
+  + Adding **additional nodes or machines** to your infrastructure to cope with new demands.
+  + Example:
 
-- Horizontal scaling
+    + new copies of application process
+    + new virtual machines
+    + new racks of servers and other hardware
++ Vertical scaling
 
-  - Adding **additional nodes or machines** to your infrastructure to cope with new demands.
-  - Example:
+  + Moving **more resources to a single server** to accommodate the growth of your application.
+  + Example:
 
-    - new copies of application process
-    - new virtual machines
-    - new racks of servers and other hardware
-- Vertical scaling
-
-  - Moving **more resources to a single server** to accommodate the growth of your application.
-  - Example:
-
-    - add more RAM -> limitation: number of RAM slots
+    + add more RAM -> limitation: number of RAM slots
 
 </details>
-
-#### 
 
 <details>
 <summary>Horizontal Pod Autoscaling</summary>
 
++ The HPA can watch Deployments or ReplicaSets and **increase the number of Replicas if a certain threshold is reached**
+  + Example: 1 pod -> 2 pods
 
-
-- The HPA can watch Deployments or ReplicaSets and **increase the number of Replicas if a certain threshold is reached**
-  - Example: 1 pod -> 2 pods
-
-- DaemonSet cannot be scaled
++ DaemonSet cannot be scaled
 
 </details>
-
-
-
-#### 
 
 <details>
 <summary>Cluster Autoscaler</summary>
 
-
-
-- Cluster Autoscaler can **add new worker nodes to the cluster** if the demand increases
++ Cluster Autoscaler can **add new worker nodes to the cluster** if the demand increases
   + 1 work node -> 2 work nodes
   + -> can work together with HPA
 
 </details>
 
-
-
 <details>
 <summary>Vertical Pod Autoscaler</summary>
 
-
-
-- allows **Pods to increase the resource requests and limits** dynamically
-- Limitation: vertical scaling is limited by the node capacity
++ allows **Pods to increase the resource requests and limits** dynamically
++ Limitation: vertical scaling is limited by the node capacity
 
 </details>
 
@@ -1504,39 +1416,32 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>What is serverless</summary>
++ Serverless requires servers
++ Goal of serverless:
 
-
-- Serverless requires servers
-- Goal of serverless:
-
-  - Developers only need to provide the application code
-  - Cloud provider provide environment to run the application
+  + Developers only need to provide the application code
+  + Cloud provider provide environment to run the application
 
 </details>
 
 <details>
-<summary>FaaS - Function as a Service</summary>
+<summary>FaaS: Function as a Service</summary>
 
-
-- A type of [cloud-computing](https://www.ibm.com/cloud/learn/cloud-computing-gbl) service that allows you to execute code **in response to events** without the complex infrastructure typically associated with building and launching [microservices](https://www.ibm.com/sg-en/cloud/learn/microservices) applications.
++ A type of [cloud-computing](https://www.ibm.com/cloud/learn/cloud-computing-gbl) service that allows you to execute code **in response to events** without the complex infrastructure typically associated with building and launching [microservices](https://www.ibm.com/sg-en/cloud/learn/microservices) applications.
 
 </details>
 
 <details>
 <summary>Standardizaton: The CloudEvents project</summary>
-
-
-- [CloudEvents](https://cloudevents.io/)
-- A specification for describing event data in a common way
++ [CloudEvents](https://cloudevents.io/)
++ A specification for describing event data in a common way
 
 </details>
 
 <details>
 <summary>Applications on serverless platforms</summary>
-
-
-- stricter requirements for cloud native architecture
-- writing **small, stateless applications** -> perfect fit for event or data streams, scheduled tasks, business logic or batch processing
++ stricter requirements for cloud native architecture
++ writing **small, stateless applications** -> perfect fit for event or data streams, scheduled tasks, business logic or batch processing
 
 </details>
 
@@ -1546,20 +1451,16 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>SIG</summary>
-
-
-- https://github.com/kubernetes/community/blob/master/sig-list.md
++ https://github.com/kubernetes/community/blob/master/sig-list.md
 
 </details>
 
 <details>
 <summary>Governance</summary>
++ Technical Oversight Committee (TOC) in CNCF
 
-
-- Technical Oversight Committee (TOC) in CNCF
-
-  - https://github.com/cncf/toc
-  - practices the principle of “**minimal viable governance**”
+  + https://github.com/cncf/toc
+  + practices the principle of “**minimal viable governance**”
     + does not control the projects
     + but encourages them to be self-governing and community owned
 
@@ -1571,23 +1472,21 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>Cloud native roles</summary>
-
-
-- Cloud Architect
++ Cloud Architect
   + adopt cloud technologies
   + design application landscape and infrastructure (focus on security, scalability and deployment mechanisms)
-- DevOps Engineer
++ DevOps Engineer
   + use tools and processes that balance out software development and operations
-- Security Engineer
-- DevSecOps Engineer
++ Security Engineer
++ DevSecOps Engineer
   + DevOps Engineer + Security Engineer
-- Data Engineer
++ Data Engineer
   + collect, store, and analyze the vast amounts of data that are being or can be collected in large systems
     + provisioning and managing specialized infrastructure
     + working with that data
-- Full-Stack Developer
++ Full-Stack Developer
   + frontend and backend development + infrastructure essentials
-- Site Reliability Engineer (SRE)
++ Site Reliability Engineer (SRE)
   + Goal of SRE:
     + create and maintain software that is **reliable and scalable**
   + SREs use 3 main metrics to measure performance and reliability -> define **error budget**
@@ -1609,31 +1508,27 @@ The **4C**'s of **Cloud Native security**: Code, Container, Cluster and Could
 
 <details>
 <summary>OCI</summary>
++ [Open Container Initiative (OCI)](https://opencontainers.org/)
 
-
-- [Open Container Initiative (OCI)](https://opencontainers.org/)
-
-  - Standards for how to build and run containers
-- [image-spec](https://github.com/opencontainers/image-spec)
+  + Standards for how to build and run containers
++ [image-spec](https://github.com/opencontainers/image-spec)
   + defines how to **build and package container images**
-- [runtime-spec](https://github.com/opencontainers/runtime-spec)
++ [runtime-spec](https://github.com/opencontainers/runtime-spec)
   + specifies the **configuration, execution environment and lifecycle of containers**
-- [Distribution-Spec](https://github.com/opencontainers/distribution-spec)
++ [Distribution-Spec](https://github.com/opencontainers/distribution-spec)
   + provides a standard for the distribution of content in general and container images in particular
 
 </details>
 
 <details>
 <summary>Standards for container orchestration systems</summary>
-
-
-- [Container Network Interface (CNI)](https://github.com/containernetworking/cni):
++ [Container Network Interface (CNI)](https://github.com/containernetworking/cni):
   + A specification on how to **implement networking** for Containers.
-- [Container Runtime Interface (CRI)](https://github.com/kubernetes/cri-api):
++ [Container Runtime Interface (CRI)](https://github.com/kubernetes/cri-api):
   + A specification on how to **implement container runtimes** in container orchestration systems.
-- [Container Storage Interface (CSI)](https://github.com/container-storage-interface/spec):
++ [Container Storage Interface (CSI)](https://github.com/container-storage-interface/spec):
   + A specification on how to **implement storage** in container orchestration systems.
-- [Service Mesh Interface (SMI)](https://smi-spec.io/):
++ [Service Mesh Interface (SMI)](https://smi-spec.io/):
   + A specification on how to **implement Service Meshes** in container orchestration systems with a focus on Kubernetes.
 
 </details>

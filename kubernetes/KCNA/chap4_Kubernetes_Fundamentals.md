@@ -319,11 +319,20 @@
 
    + **Kubernetes**:
      + Define **Pods** as the smallest compute unit ->Then Kubernetes translate that into a running container
+     
      + When create a Pod in Kubernetes, several components are involved
        + Example using Docker:
-         + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/chap4_ContainersInKubernetes.png)
+         
+         + <p align="center">
+             <img width="800" src="./figures/chap4_ContainersInKubernetes.png">
+           </p>
+         
        + Example using containerd:
-         + ![](https://github.com/baozi929/Notes/blob/main/kubernetes/KCNA/figures/chap4_ContainerCreationWithContainerd.png)
+         
+         + <p align="center">
+             <img width="600" src="./figures/chap4_ContainerCreationWithContainerd.png">
+           </p>
+         
          + **much simpler than with Docker**
 
 2. Container Runtimes Interface (CRI)
