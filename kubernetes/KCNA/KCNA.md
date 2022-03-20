@@ -179,6 +179,8 @@
       + ```bash
         # Rolling update "www" containers of "frontend" deployment, updating the image
         kubectl set image deployment/frontend www=image:v2
+        # Alternatively, you can edit the Deployment and change .spec.template.spec.containers[0].image from image:v1 to nginx:v2
+        kubectl edit deployment/nginx-deployment
         # Check the history of deployments including the revision 
         kubectl rollout history deployment/frontend
         # Rollback to the previous deployment
@@ -192,7 +194,7 @@
         ```
 
     + Replace
-
+  
       + ```bash
         # Replace a pod based on the JSON passed into std
         cat pod.json | kubectl replace -f -
@@ -203,21 +205,21 @@
         ```
 
     + Expose (Create service)
-
+  
       + ```bash
         # Create a service for a replicated nginx, which serves on port 80 and connects to the containers on port 8000
         kubectl expose rc nginx --port=80 --target-port=8000
         ```
 
     + Add label, annotation
-
+  
       + ```bash
         kubectl label pods my-pod new-label=awesome                      # Add a Label
         kubectl annotate pods my-pod icon-url=http://goo.gl/XXBTWq       # Add an annotation
         ```
 
     + Creates an **autoscaler** that automatically chooses and sets the number of pods that run in a Kubernetes cluster
-
+  
       + ```bash
         # Auto scale a deployment "foo"
         kubectl autoscale deployment foo --min=2 --max=10
@@ -228,7 +230,7 @@
     + Update fields of a resource using strategic merge patch, a JSON merge patch, or a JSON patch
 
       + Usage: kubectl patch (-f FILENAME | TYPE NAME) [-p PATCH|--patch-file FILE]
-
+  
       + ```bash
         # Partially update a node
         kubectl patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'
@@ -245,7 +247,7 @@
   + Edit resources
 
     + Edit a resource from the default editor
-
+  
       + ```bash
         # Edit the service named 'docker-registry'
         kubectl edit svc/docker-registry
@@ -260,7 +262,7 @@
   + Scale resources
 
     + Set a new size for a deployment, replica set, replication controller, or stateful set
-
+  
       + ```bash
         # Scale a replica set named 'foo' to 3
         kubectl scale --replicas=3 rs/foo
@@ -275,7 +277,7 @@
   + Delete resources
 
     + Delete resources by file names, stdin, resources and names, or by resources and label selector
-
+  
       + ```bash
         # Delete a pod using the type and name specified in pod.json
         kubectl delete -f ./pod.json
@@ -296,11 +298,11 @@
     + Print the logs for a container in a pod or specified resource. If the pod has only one container, the container name is optional.
 
       + Usage: `kubectl logs [-f] [-p] (POD | TYPE/NAME) [-c CONTAINER]`
-
+  
         + -c, --container="": Print the logs of this container
         + -f, --follow: Specify if the logs should be streamed
         + -p, --previous: If true, print the logs for the **previous instance** of the container in a pod if it exists.
-
+  
       + ```bash
         # dump pod logs (stdout)
         kubectl logs my-pod
@@ -317,7 +319,7 @@
     + Display Resource (CPU/Memory) usage
 
       + Usage: `kubectl top`
-
+  
       + ```bash
         # Show metrics for a given pod and its containers
         kubectl top pod POD_NAME --containers
@@ -328,7 +330,7 @@
   + Copy files and directories to and from containers
 
     + Usage: `kubectl cp <file-spec-src> <file-spec-dest>`
-
+  
     + ```bash
       # Copy /tmp/foo_dir local directory to /tmp/bar_dir in a remote pod in the current namespace
       kubectl cp /tmp/foo_dir my-pod:/tmp/bar_dir
@@ -343,7 +345,7 @@
   + Resource types
 
     + Print the supported API resources on the server
-
+  
       + ```bash
         kubectl api-resources
         # All namespaced resources
