@@ -39,7 +39,6 @@
       + Step4: **Deliver the application to the platform** it should run on
         + If target platform is Kubernetes, need YAML file to deploy the app -> build container image and push to a container registry
    
-
 2. **Source code is not the only thing managed in a version control system**
    + **Infrastructure as Code** (IaC): https://en.wikipedia.org/wiki/Infrastructure_as_code
      + No need to install infrastructure manually
@@ -55,7 +54,6 @@
 
    + deployments get more frequent
      + manual steps are error-prone
-
 2. Solution:
    + **Automation of the deployment process**
      + use the principles of **Continuous Integration/Continuous Delivery (CI/CD)**, which describe the different steps in the deployment of an application, configuration or even infrastructure
@@ -70,16 +68,14 @@
        + What the pipeline should include:
          + version control system -> to manage changes to the code base
          + execute scripts to build the code, run tests, deploy them to servers (and even perform security and compliance checks) **every time a new version of the code is ready to be deployed**
-
 3. Popular CI/CD tools:
    + [Spinnaker](https://spinnaker.io/)
-     + [GitLab](https://gitlab.com/#)
-     + [Jenkins](https://www.jenkins.io/)
-     + [Jenkins X](https://jenkins-x.io/)
-     + [Tekton CD](https://github.com/tektoncd/pipeline)
-     + [Argo](https://argoproj.github.io/)
+   + [GitLab](https://gitlab.com/#)
+   + [Jenkins](https://www.jenkins.io/)
+   + [Jenkins X](https://jenkins-x.io/)
+   + [Tekton CD](https://github.com/tektoncd/pipeline)
+   + [Argo](https://argoproj.github.io/)
      + Open source tools for Kubernetes to run workflows, manage clusters, and do GitOps right.
-
 4. [Introduction to DevOps and Site Reliability Engineering (LFS162)](https://training.linuxfoundation.org/training/introduction-to-devops)
 
 
